@@ -1,50 +1,39 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Plus,
-  ArrowLeft,
-  FileText,
-  Image as ImageIcon,
-} from "lucide-react";
-import { patents as mockPatents, type Patent, type PatentStatus } from "@/lib/mockData";
+import { Plus, ArrowLeft, FileText } from "lucide-react";
+import { patents as mockPatents, type Patent } from "@/lib/mockData";
+import { IP_TYPES, IP_TYPE_BADGE, type IpType } from "@/lib/lookups";
 import PatentFormModal from "@/components/PatentFormModal";
 
-const statusBadge: Record<PatentStatus, string> = {
-  등록: "bg-emerald-50 text-emerald-700",
-  심사중: "bg-amber-50 text-amber-700",
-  출원: "bg-blue-50 text-blue-700",
-  포기: "bg-gray-100 text-gray-600",
-};
-
-function StatusBadge({ status }: { status: PatentStatus }) {
+function TypeBadge({ type }: { type: IpType }) {
   return (
     <span
-      className={`inline-flex rounded-md px-2.5 py-0.5 text-xs font-semibold ${statusBadge[status]}`}
+      className={`inline-flex rounded-md px-2.5 py-0.5 text-xs font-semibold ${IP_TYPE_BADGE[type]}`}
     >
-      {status}
+      {type}
     </span>
   );
 }
 
-const filters: ("전체" | PatentStatus)[] = [
-  "전체",
-  "출원",
-  "심사중",
-  "등록",
-  "포기",
-];
+const filters: ("전체" | IpType)[] = ["전체", ...IP_TYPES];
 
 export default function PatentPage() {
-  const [filter, setFilter] = useState<"전체" | PatentStatus>("전체");
+  const [filter, setFilter] = useState<"전체" | IpType>("전체");
   const [selected, setSelected] = useState<Patent | null>(null);
   const [list, setList] = useState<Patent[]>(mockPatents);
   const [modalOpen, setModalOpen] = useState(false);
 
   const visible =
-    filter === "전체"
-      ? list
-      : list.filter((p) => p.status === filter);
+    filter === "전체" ? list : list.filter((p) => p.type === filter);
+
+  const countRegistered = list.filter(
+    (p) => p.type === "등록" || p.type === "등록-기술이전"
+  ).length;
+  const countApplied = list.filter(
+    (p) => p.type === "출원" || p.type === "분할 출원"
+  ).length;
+  const countCertified = list.filter((p) => p.type === "인증").length;
 
   return (
     <div className="space-y-5 p-4 sm:p-6">
@@ -55,7 +44,7 @@ export default function PatentPage() {
             특허관리
           </h1>
           <p className="mt-0.5 text-sm text-gray-500">
-            회사 보유 특허 출원·등록 현황을 관리합니다
+            회사 지식재산권 등록·출원·인증 현황을 관리합니다
           </p>
         </div>
         <button
@@ -78,6 +67,25 @@ export default function PatentPage() {
         <PatentDetail patent={selected} onBack={() => setSelected(null)} />
       ) : (
         <>
+          {/* 요약 카드 */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {[
+              { label: "등록", value: countRegistered },
+              { label: "출원", value: countApplied },
+              { label: "인증", value: countCertified },
+            ].map((m) => (
+              <div
+                key={m.label}
+                className="rounded-2xl border border-gray-100 bg-white p-4"
+              >
+                <p className="text-xs text-gray-500">{m.label}</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900">
+                  {m.value}건
+                </p>
+              </div>
+            ))}
+          </div>
+
           {/* 필터칩 */}
           <div className="flex flex-wrap gap-2">
             {filters.map((f) => (
@@ -101,47 +109,47 @@ export default function PatentPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                      발명의 명칭
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                      상태
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                      출원번호
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">
-                      첨부
-                    </th>
+                    {[
+                      "순번",
+                      "지식재산권 종류",
+                      "지식재산권명",
+                      "등록(출원)번호",
+                      "관리자",
+                      "비고",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-semibold text-gray-500"
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {visible.map((p) => (
+                  {visible.map((p, i) => (
                     <tr
                       key={p.id}
                       onClick={() => setSelected(p)}
                       className="cursor-pointer hover:bg-gray-50"
                     >
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {i + 1}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        <TypeBadge type={p.type} />
+                      </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {p.title}
+                        {p.name}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        <StatusBadge status={p.status} />
+                        {p.number}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {p.applicationNumber}
+                        {p.manager}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        <div className="flex items-center gap-3 text-gray-500">
-                          <span className="inline-flex items-center gap-1">
-                            <FileText size={14} />
-                            {p.docs.length}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <ImageIcon size={14} />
-                            {p.photos}
-                          </span>
-                        </div>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {p.note || "-"}
                       </td>
                     </tr>
                   ))}
@@ -173,28 +181,17 @@ function PatentDetail({
       </button>
 
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-bold text-gray-900">{patent.title}</h2>
-        <StatusBadge status={patent.status} />
+        <h2 className="text-lg font-bold text-gray-900">{patent.name}</h2>
+        <TypeBadge type={patent.type} />
       </div>
 
       {/* 기본정보 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="출원번호" value={patent.applicationNumber} />
-          <Field
-            label="등록번호"
-            value={patent.registrationNumber ?? "-"}
-          />
-          <Field label="출원일" value={patent.applicationDate} />
-          <Field
-            label="등록일"
-            value={patent.registrationDate ?? "-"}
-          />
-          <Field
-            label="출원국·발명자"
-            value={`${patent.country} · ${patent.inventors}`}
-          />
-          <Field label="관련 제품" value={patent.relatedProduct} />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <Field label="지식재산권 종류" value={patent.type} />
+          <Field label="등록(출원)번호" value={patent.number} />
+          <Field label="관리자" value={patent.manager} />
+          <Field label="비고" value={patent.note || "-"} />
         </div>
       </div>
 
@@ -204,32 +201,16 @@ function PatentDetail({
         <div className="mt-3 flex flex-wrap gap-2">
           {patent.docs.map((d) => (
             <span
-              key={d.name}
+              key={d}
               className="inline-flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-700"
             >
               <FileText size={14} className="text-gray-400" />
-              {d.name}
-              <span className="text-gray-400">{d.size}</span>
+              {d}
             </span>
           ))}
           <button className="inline-flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-500">
             <Plus size={14} />
-            문서 추가 · PDF·이미지
-          </button>
-        </div>
-
-        <h3 className="mt-6 text-sm font-semibold text-gray-900">도면·사진</h3>
-        <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-          {Array.from({ length: patent.photos }).map((_, i) => (
-            <div
-              key={i}
-              className="flex aspect-square items-center justify-center rounded-xl bg-gray-100"
-            >
-              <ImageIcon size={20} className="text-gray-400" />
-            </div>
-          ))}
-          <button className="flex aspect-square items-center justify-center rounded-xl border border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500">
-            <Plus size={20} />
+            문서 추가 · 출원사실 증명서·등록증 등
           </button>
         </div>
       </div>

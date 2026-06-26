@@ -2,15 +2,12 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import type { AssetTx, AssetTxType } from "@/lib/mockData";
+import type { Asset } from "@/lib/mockData";
 
 interface AssetFormModalProps {
   onClose: () => void;
-  onSubmit: (tx: AssetTx) => void;
+  onSubmit: (asset: Asset) => void;
 }
-
-const categories = ["소모품", "비품", "자산"];
-const types: AssetTxType[] = ["입고", "출고", "폐기"];
 
 const inputCls =
   "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200";
@@ -20,28 +17,37 @@ export default function AssetFormModal({
   onClose,
   onSubmit,
 }: AssetFormModalProps) {
-  const [itemName, setItemName] = useState("");
-  const [category, setCategory] = useState(categories[0]);
-  const [type, setType] = useState<AssetTxType>("입고");
+  const [purchaseDate, setPurchaseDate] = useState("");
+  const [assetNo, setAssetNo] = useState("");
+  const [name, setName] = useState("");
+  const [spec, setSpec] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [partner, setPartner] = useState("");
-  const [date, setDate] = useState("");
+  const [price, setPrice] = useState("");
+  const [vendor, setVendor] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [location, setLocation] = useState("");
+  const [managerPrimary, setManagerPrimary] = useState("");
+  const [managerSub, setManagerSub] = useState("");
   const [files, setFiles] = useState<string[]>([]);
 
   const submit = () => {
-    if (!itemName.trim()) return;
-    const newTx: AssetTx = {
-      id: `AT-${Date.now()}`,
-      itemName: itemName.trim(),
-      category,
-      type,
-      quantity: quantity.trim(),
-      partner: partner.trim() || "-",
-      date: date.trim(),
-      docs: files.length,
-      photos: 0,
+    if (!name.trim()) return;
+    const newAsset: Asset = {
+      id: `AS-${Date.now()}`,
+      purchaseDate: purchaseDate.trim(),
+      assetNo: assetNo.trim(),
+      name: name.trim(),
+      spec: spec.trim(),
+      quantity: Number(quantity) || 0,
+      price: Number(price) || 0,
+      vendor: vendor.trim(),
+      purpose: purpose.trim(),
+      location: location.trim(),
+      managerPrimary: managerPrimary.trim(),
+      managerSub: managerSub.trim() || "-",
+      docs: files,
     };
-    onSubmit(newTx);
+    onSubmit(newAsset);
     onClose();
   };
 
@@ -49,7 +55,7 @@ export default function AssetFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
         <div className="flex items-start justify-between">
-          <h2 className="text-lg font-bold text-gray-900">입출 등록</h2>
+          <h2 className="text-lg font-bold text-gray-900">장비 등록</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -59,66 +65,96 @@ export default function AssetFormModal({
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className={labelCls}>품목 *</label>
+          <div>
+            <label className={labelCls}>구입일자</label>
             <input
               className={inputCls}
-              value={itemName}
-              onChange={(e) => setItemName(e.target.value)}
+              placeholder="예: 2026-06-20"
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
             />
           </div>
           <div>
-            <label className={labelCls}>카테고리</label>
-            <select
+            <label className={labelCls}>장비번호</label>
+            <input
               className={inputCls}
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+              placeholder="예: S-001 (S=연구용, R=일반)"
+              value={assetNo}
+              onChange={(e) => setAssetNo(e.target.value)}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>장비명 *</label>
+            <input
+              className={inputCls}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
           <div>
-            <label className={labelCls}>구분</label>
-            <select
+            <label className={labelCls}>규격</label>
+            <input
               className={inputCls}
-              value={type}
-              onChange={(e) => setType(e.target.value as AssetTxType)}
-            >
-              {types.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+              value={spec}
+              onChange={(e) => setSpec(e.target.value)}
+            />
           </div>
           <div>
             <label className={labelCls}>수량</label>
             <input
+              type="number"
               className={inputCls}
-              placeholder="예: 20 L"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
             />
           </div>
           <div>
-            <label className={labelCls}>거래처</label>
+            <label className={labelCls}>구입금액(원)</label>
             <input
+              type="number"
               className={inputCls}
-              value={partner}
-              onChange={(e) => setPartner(e.target.value)}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
             />
           </div>
           <div>
-            <label className={labelCls}>거래일</label>
+            <label className={labelCls}>구입처</label>
             <input
               className={inputCls}
-              placeholder="예: 2026-06-20"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
+              value={vendor}
+              onChange={(e) => setVendor(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>용도</label>
+            <input
+              className={inputCls}
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>설치장소</label>
+            <input
+              className={inputCls}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>관리자_정</label>
+            <input
+              className={inputCls}
+              value={managerPrimary}
+              onChange={(e) => setManagerPrimary(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>관리자_부</label>
+            <input
+              className={inputCls}
+              value={managerSub}
+              onChange={(e) => setManagerSub(e.target.value)}
             />
           </div>
         </div>
@@ -136,12 +172,12 @@ export default function AssetFormModal({
           />
           {files.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {files.map((name, i) => (
+              {files.map((fname, i) => (
                 <span
                   key={i}
                   className="inline-flex items-center rounded-lg bg-gray-50 px-3 py-1 text-xs text-gray-700"
                 >
-                  {name}
+                  {fname}
                 </span>
               ))}
             </div>

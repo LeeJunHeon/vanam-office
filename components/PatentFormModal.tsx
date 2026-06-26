@@ -2,14 +2,13 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import type { Patent, PatentStatus } from "@/lib/mockData";
+import type { Patent } from "@/lib/mockData";
+import { IP_TYPES, type IpType } from "@/lib/lookups";
 
 interface PatentFormModalProps {
   onClose: () => void;
   onSubmit: (patent: Patent) => void;
 }
-
-const statuses: PatentStatus[] = ["출원", "심사중", "등록", "포기"];
 
 const inputCls =
   "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200";
@@ -19,32 +18,23 @@ export default function PatentFormModal({
   onClose,
   onSubmit,
 }: PatentFormModalProps) {
-  const [title, setTitle] = useState("");
-  const [status, setStatus] = useState<PatentStatus>("출원");
-  const [applicationNumber, setApplicationNumber] = useState("");
-  const [registrationNumber, setRegistrationNumber] = useState("");
-  const [applicationDate, setApplicationDate] = useState("");
-  const [registrationDate, setRegistrationDate] = useState("");
-  const [country, setCountry] = useState("KR");
-  const [inventors, setInventors] = useState("");
-  const [relatedProduct, setRelatedProduct] = useState("");
+  const [type, setType] = useState<IpType>("출원");
+  const [name, setName] = useState("");
+  const [number, setNumber] = useState("");
+  const [manager, setManager] = useState("");
+  const [note, setNote] = useState("");
   const [files, setFiles] = useState<string[]>([]);
 
   const submit = () => {
-    if (!title.trim()) return;
+    if (!name.trim()) return;
     const newPatent: Patent = {
-      id: `PT-${Date.now()}`,
-      title: title.trim(),
-      applicationNumber: applicationNumber.trim(),
-      registrationNumber: registrationNumber.trim() || null,
-      status,
-      applicationDate: applicationDate.trim(),
-      registrationDate: registrationDate.trim() || null,
-      country: country.trim() || "KR",
-      inventors: inventors.trim(),
-      relatedProduct: relatedProduct.trim(),
-      docs: files.map((name) => ({ name, size: "-" })),
-      photos: 0,
+      id: `IP-${Date.now()}`,
+      type,
+      name: name.trim(),
+      number: number.trim(),
+      manager: manager.trim(),
+      note: note.trim(),
+      docs: files,
     };
     onSubmit(newPatent);
     onClose();
@@ -64,84 +54,51 @@ export default function PatentFormModal({
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className={labelCls}>발명의 명칭 *</label>
-            <input
-              className={inputCls}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
           <div>
-            <label className={labelCls}>상태</label>
+            <label className={labelCls}>지식재산권 종류</label>
             <select
               className={inputCls}
-              value={status}
-              onChange={(e) => setStatus(e.target.value as PatentStatus)}
+              value={type}
+              onChange={(e) => setType(e.target.value as IpType)}
             >
-              {statuses.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+              {IP_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
                 </option>
               ))}
             </select>
           </div>
-          <div>
-            <label className={labelCls}>출원번호</label>
+          <div className="sm:col-span-2">
+            <label className={labelCls}>지식재산권명 *</label>
             <input
               className={inputCls}
-              value={applicationNumber}
-              onChange={(e) => setApplicationNumber(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
           <div>
-            <label className={labelCls}>등록번호</label>
+            <label className={labelCls}>등록(출원)번호</label>
             <input
               className={inputCls}
-              value={registrationNumber}
-              onChange={(e) => setRegistrationNumber(e.target.value)}
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
             />
           </div>
           <div>
-            <label className={labelCls}>출원일</label>
+            <label className={labelCls}>관리자</label>
             <input
               className={inputCls}
-              placeholder="예: 2026-01-15"
-              value={applicationDate}
-              onChange={(e) => setApplicationDate(e.target.value)}
+              value={manager}
+              onChange={(e) => setManager(e.target.value)}
             />
           </div>
-          <div>
-            <label className={labelCls}>등록일</label>
-            <input
+          <div className="sm:col-span-2">
+            <label className={labelCls}>비고</label>
+            <textarea
               className={inputCls}
-              placeholder="예: 2026-08-30"
-              value={registrationDate}
-              onChange={(e) => setRegistrationDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>출원국</label>
-            <input
-              className={inputCls}
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>발명자</label>
-            <input
-              className={inputCls}
-              value={inventors}
-              onChange={(e) => setInventors(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>관련 제품</label>
-            <input
-              className={inputCls}
-              value={relatedProduct}
-              onChange={(e) => setRelatedProduct(e.target.value)}
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
             />
           </div>
         </div>
@@ -159,12 +116,12 @@ export default function PatentFormModal({
           />
           {files.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {files.map((name, i) => (
+              {files.map((fname, i) => (
                 <span
                   key={i}
                   className="inline-flex items-center rounded-lg bg-gray-50 px-3 py-1 text-xs text-gray-700"
                 >
-                  {name}
+                  {fname}
                 </span>
               ))}
             </div>
