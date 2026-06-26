@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import type { Asset } from "@/lib/mockData";
+import type { Asset, AttachFile } from "@/lib/mockData";
+import { ASSET_DOC_TYPES } from "@/lib/lookups";
+import AttachmentField from "@/components/AttachmentField";
 
 interface AssetFormModalProps {
+  initial?: Asset;
   onClose: () => void;
   onSubmit: (asset: Asset) => void;
 }
@@ -14,26 +17,31 @@ const inputCls =
 const labelCls = "mb-1 block text-xs font-medium text-gray-600";
 
 export default function AssetFormModal({
+  initial,
   onClose,
   onSubmit,
 }: AssetFormModalProps) {
-  const [purchaseDate, setPurchaseDate] = useState("");
-  const [assetNo, setAssetNo] = useState("");
-  const [name, setName] = useState("");
-  const [spec, setSpec] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [price, setPrice] = useState("");
-  const [vendor, setVendor] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [location, setLocation] = useState("");
-  const [managerPrimary, setManagerPrimary] = useState("");
-  const [managerSub, setManagerSub] = useState("");
-  const [files, setFiles] = useState<string[]>([]);
+  const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate ?? "");
+  const [assetNo, setAssetNo] = useState(initial?.assetNo ?? "");
+  const [name, setName] = useState(initial?.name ?? "");
+  const [spec, setSpec] = useState(initial?.spec ?? "");
+  const [quantity, setQuantity] = useState(
+    initial ? String(initial.quantity) : ""
+  );
+  const [price, setPrice] = useState(initial ? String(initial.price) : "");
+  const [vendor, setVendor] = useState(initial?.vendor ?? "");
+  const [purpose, setPurpose] = useState(initial?.purpose ?? "");
+  const [location, setLocation] = useState(initial?.location ?? "");
+  const [managerPrimary, setManagerPrimary] = useState(
+    initial?.managerPrimary ?? ""
+  );
+  const [managerSub, setManagerSub] = useState(initial?.managerSub ?? "");
+  const [docs, setDocs] = useState<AttachFile[]>(initial?.docs ?? []);
 
   const submit = () => {
     if (!name.trim()) return;
-    const newAsset: Asset = {
-      id: `AS-${Date.now()}`,
+    const asset: Asset = {
+      id: initial?.id ?? `A-${Date.now()}`,
       purchaseDate: purchaseDate.trim(),
       assetNo: assetNo.trim(),
       name: name.trim(),
@@ -45,9 +53,9 @@ export default function AssetFormModal({
       location: location.trim(),
       managerPrimary: managerPrimary.trim(),
       managerSub: managerSub.trim() || "-",
-      docs: files,
+      docs,
     };
-    onSubmit(newAsset);
+    onSubmit(asset);
     onClose();
   };
 
@@ -55,7 +63,9 @@ export default function AssetFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
         <div className="flex items-start justify-between">
-          <h2 className="text-lg font-bold text-gray-900">장비 등록</h2>
+          <h2 className="text-lg font-bold text-gray-900">
+            {initial ? "장비 수정" : "장비 등록"}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -159,29 +169,15 @@ export default function AssetFormModal({
           </div>
         </div>
 
-        {/* 첨부 파일 (데모: 저장 안 함) */}
+        {/* 첨부 파일 (브라우저 메모리만) */}
         <div className="mt-4">
           <label className={labelCls}>첨부 파일</label>
-          <input
-            type="file"
-            multiple
-            onChange={(e) =>
-              setFiles(Array.from(e.target.files ?? []).map((f) => f.name))
-            }
-            className="block w-full text-sm text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+          <AttachmentField
+            files={docs}
+            onChange={setDocs}
+            docTypes={ASSET_DOC_TYPES}
+            editable
           />
-          {files.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {files.map((fname, i) => (
-                <span
-                  key={i}
-                  className="inline-flex items-center rounded-lg bg-gray-50 px-3 py-1 text-xs text-gray-700"
-                >
-                  {fname}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
@@ -195,7 +191,7 @@ export default function AssetFormModal({
             onClick={submit}
             className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600"
           >
-            등록
+            {initial ? "수정" : "등록"}
           </button>
         </div>
       </div>

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, ArrowLeft, FileText } from "lucide-react";
+import { Plus, ArrowLeft, FileText, Pencil, Trash2 } from "lucide-react";
 import { assets as mockAssets, type Asset } from "@/lib/mockData";
-import { assetKind, ASSET_KIND_BADGE } from "@/lib/lookups";
+import { assetKind, ASSET_KIND_BADGE, ASSET_DOC_TYPES } from "@/lib/lookups";
 import AssetFormModal from "@/components/AssetFormModal";
+import AttachmentField from "@/components/AttachmentField";
 
 function KindBadge({ assetNo }: { assetNo: string }) {
   const kind = assetKind(assetNo);
@@ -20,19 +21,59 @@ function KindBadge({ assetNo }: { assetNo: string }) {
 const filters = ["전체", "연구용", "일반"] as const;
 
 export default function AssetPage() {
-  const [filter, setFilter] =
-    useState<(typeof filters)[number]>("전체");
+  const [filter, setFilter] = useState<(typeof filters)[number]>("전체");
   const [list, setList] = useState<Asset[]>(mockAssets);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Asset | null>(null);
   const [selected, setSelected] = useState<Asset | null>(null);
+  const [toast, setToast] = useState("");
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2500);
+  };
 
   const visible =
     filter === "전체"
       ? list
       : list.filter((a) => assetKind(a.assetNo) === filter);
 
+  const handleSubmit = (a: Asset) => {
+    if (editTarget) {
+      setList((prev) => prev.map((x) => (x.id === a.id ? a : x)));
+      setSelected((cur) => (cur && cur.id === a.id ? a : cur));
+      showToast("수정되었습니다.");
+    } else {
+      setList((prev) => [a, ...prev]);
+      showToast("등록되었습니다.");
+    }
+  };
+
+  const handleDelete = (a: Asset) => {
+    if (!confirm("삭제하시겠습니까?")) return;
+    setList((prev) => prev.filter((x) => x.id !== a.id));
+    setSelected(null);
+    showToast("삭제되었습니다.");
+  };
+
+  const openRegister = () => {
+    setEditTarget(null);
+    setModalOpen(true);
+  };
+
+  const openEdit = (a: Asset) => {
+    setEditTarget(a);
+    setModalOpen(true);
+  };
+
   return (
     <div className="space-y-5 p-4 sm:p-6">
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-xl bg-gray-900 px-5 py-3 text-white shadow-lg">
+          {toast}
+        </div>
+      )}
+
       {/* 헤더 */}
       <div className="flex items-start justify-between">
         <div>
@@ -44,7 +85,7 @@ export default function AssetPage() {
           </p>
         </div>
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={openRegister}
           className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600"
         >
           <Plus size={16} />
@@ -54,13 +95,19 @@ export default function AssetPage() {
 
       {modalOpen && (
         <AssetFormModal
+          initial={editTarget ?? undefined}
           onClose={() => setModalOpen(false)}
-          onSubmit={(a) => setList((prev) => [a, ...prev])}
+          onSubmit={handleSubmit}
         />
       )}
 
       {selected ? (
-        <AssetDetail asset={selected} onBack={() => setSelected(null)} />
+        <AssetDetail
+          asset={selected}
+          onBack={() => setSelected(null)}
+          onEdit={() => openEdit(selected)}
+          onDelete={() => handleDelete(selected)}
+        />
       ) : (
         <>
           {/* 필터칩 */}
@@ -166,19 +213,41 @@ export default function AssetPage() {
 function AssetDetail({
   asset,
   onBack,
+  onEdit,
+  onDelete,
 }: {
   asset: Asset;
   onBack: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   return (
     <div className="space-y-5">
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-200"
-      >
-        <ArrowLeft size={16} />
-        목록으로
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-200"
+        >
+          <ArrowLeft size={16} />
+          목록으로
+        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onEdit}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+          >
+            <Pencil size={15} />
+            수정
+          </button>
+          <button
+            onClick={onDelete}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+          >
+            <Trash2 size={15} />
+            삭제
+          </button>
+        </div>
+      </div>
 
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-bold text-gray-900">{asset.name}</h2>
@@ -203,22 +272,15 @@ function AssetDetail({
 
       {/* 첨부 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-900">관련 서류</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {asset.docs.map((d) => (
-            <span
-              key={d}
-              className="inline-flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-700"
-            >
-              <FileText size={14} className="text-gray-400" />
-              {d}
-            </span>
-          ))}
-          <button className="inline-flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-500">
-            <Plus size={14} />
-            서류 추가 · 계약서·거래명세서·세금계산서·입금확인·카드전표·증빙사진 등
-          </button>
-        </div>
+        <h3 className="mb-3 text-sm font-semibold text-gray-900">
+          관련 서류 ({asset.docs.length})
+        </h3>
+        <AttachmentField
+          files={asset.docs}
+          onChange={() => {}}
+          docTypes={ASSET_DOC_TYPES}
+          editable={false}
+        />
       </div>
     </div>
   );

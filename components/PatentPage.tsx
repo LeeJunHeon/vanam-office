@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, ArrowLeft, FileText } from "lucide-react";
+import { Plus, ArrowLeft, FileText, Pencil, Trash2 } from "lucide-react";
 import { patents as mockPatents, type Patent } from "@/lib/mockData";
-import { IP_TYPES, IP_TYPE_BADGE, type IpType } from "@/lib/lookups";
+import {
+  IP_TYPES,
+  IP_TYPE_BADGE,
+  PATENT_DOC_TYPES,
+  type IpType,
+} from "@/lib/lookups";
 import PatentFormModal from "@/components/PatentFormModal";
+import AttachmentField from "@/components/AttachmentField";
 
 function TypeBadge({ type }: { type: IpType }) {
   return (
@@ -23,6 +29,13 @@ export default function PatentPage() {
   const [selected, setSelected] = useState<Patent | null>(null);
   const [list, setList] = useState<Patent[]>(mockPatents);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Patent | null>(null);
+  const [toast, setToast] = useState("");
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2500);
+  };
 
   const visible =
     filter === "전체" ? list : list.filter((p) => p.type === filter);
@@ -35,8 +48,42 @@ export default function PatentPage() {
   ).length;
   const countCertified = list.filter((p) => p.type === "인증").length;
 
+  const handleSubmit = (p: Patent) => {
+    if (editTarget) {
+      setList((prev) => prev.map((x) => (x.id === p.id ? p : x)));
+      setSelected((cur) => (cur && cur.id === p.id ? p : cur));
+      showToast("수정되었습니다.");
+    } else {
+      setList((prev) => [p, ...prev]);
+      showToast("등록되었습니다.");
+    }
+  };
+
+  const handleDelete = (p: Patent) => {
+    if (!confirm("삭제하시겠습니까?")) return;
+    setList((prev) => prev.filter((x) => x.id !== p.id));
+    setSelected(null);
+    showToast("삭제되었습니다.");
+  };
+
+  const openRegister = () => {
+    setEditTarget(null);
+    setModalOpen(true);
+  };
+
+  const openEdit = (p: Patent) => {
+    setEditTarget(p);
+    setModalOpen(true);
+  };
+
   return (
     <div className="space-y-5 p-4 sm:p-6">
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-xl bg-gray-900 px-5 py-3 text-white shadow-lg">
+          {toast}
+        </div>
+      )}
+
       {/* 헤더 */}
       <div className="flex items-start justify-between">
         <div>
@@ -48,7 +95,7 @@ export default function PatentPage() {
           </p>
         </div>
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={openRegister}
           className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600"
         >
           <Plus size={16} />
@@ -58,13 +105,19 @@ export default function PatentPage() {
 
       {modalOpen && (
         <PatentFormModal
+          initial={editTarget ?? undefined}
           onClose={() => setModalOpen(false)}
-          onSubmit={(p) => setList((prev) => [p, ...prev])}
+          onSubmit={handleSubmit}
         />
       )}
 
       {selected ? (
-        <PatentDetail patent={selected} onBack={() => setSelected(null)} />
+        <PatentDetail
+          patent={selected}
+          onBack={() => setSelected(null)}
+          onEdit={() => openEdit(selected)}
+          onDelete={() => handleDelete(selected)}
+        />
       ) : (
         <>
           {/* 요약 카드 */}
@@ -115,6 +168,7 @@ export default function PatentPage() {
                       "지식재산권명",
                       "등록(출원)번호",
                       "관리자",
+                      "첨부",
                       "비고",
                     ].map((h) => (
                       <th
@@ -149,6 +203,12 @@ export default function PatentPage() {
                         {p.manager}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
+                        <span className="inline-flex items-center gap-1">
+                          <FileText size={14} />
+                          {p.docs.length}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
                         {p.note || "-"}
                       </td>
                     </tr>
@@ -166,19 +226,41 @@ export default function PatentPage() {
 function PatentDetail({
   patent,
   onBack,
+  onEdit,
+  onDelete,
 }: {
   patent: Patent;
   onBack: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   return (
     <div className="space-y-5">
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-200"
-      >
-        <ArrowLeft size={16} />
-        목록으로
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-200"
+        >
+          <ArrowLeft size={16} />
+          목록으로
+        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onEdit}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+          >
+            <Pencil size={15} />
+            수정
+          </button>
+          <button
+            onClick={onDelete}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+          >
+            <Trash2 size={15} />
+            삭제
+          </button>
+        </div>
+      </div>
 
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-bold text-gray-900">{patent.name}</h2>
@@ -197,22 +279,15 @@ function PatentDetail({
 
       {/* 첨부 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-900">관련 문서</h3>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {patent.docs.map((d) => (
-            <span
-              key={d}
-              className="inline-flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-700"
-            >
-              <FileText size={14} className="text-gray-400" />
-              {d}
-            </span>
-          ))}
-          <button className="inline-flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-500">
-            <Plus size={14} />
-            문서 추가 · 출원사실 증명서·등록증 등
-          </button>
-        </div>
+        <h3 className="mb-3 text-sm font-semibold text-gray-900">
+          관련 문서 ({patent.docs.length})
+        </h3>
+        <AttachmentField
+          files={patent.docs}
+          onChange={() => {}}
+          docTypes={PATENT_DOC_TYPES}
+          editable={false}
+        />
       </div>
     </div>
   );

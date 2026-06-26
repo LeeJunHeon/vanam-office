@@ -2,6 +2,14 @@
 
 import type { IpType } from "@/lib/lookups";
 
+export interface AttachFile {
+  id: string;
+  name: string;
+  kind: string;
+  size?: number;
+  url?: string;
+}
+
 export interface Patent {
   id: string;
   type: IpType;
@@ -9,7 +17,7 @@ export interface Patent {
   number: string;
   manager: string;
   note: string;
-  docs: string[];
+  docs: AttachFile[];
 }
 
 export const patents: Patent[] = [
@@ -20,7 +28,7 @@ export const patents: Patent[] = [
     number: "10-2698412",
     manager: "이준헌",
     note: "",
-    docs: ["등록증"],
+    docs: [{ id: "ip1-d1", name: "등록증.pdf", kind: "등록증" }],
   },
   {
     id: "IP-2",
@@ -29,7 +37,9 @@ export const patents: Patent[] = [
     number: "10-2026-0003210",
     manager: "이준헌",
     note: "심사 진행중",
-    docs: ["출원사실 증명서"],
+    docs: [
+      { id: "ip2-d1", name: "출원사실 증명서.pdf", kind: "출원사실 증명서" },
+    ],
   },
   {
     id: "IP-3",
@@ -38,7 +48,7 @@ export const patents: Patent[] = [
     number: "10-2611234",
     manager: "김서연",
     note: "A사 기술이전 완료",
-    docs: ["등록증"],
+    docs: [{ id: "ip3-d1", name: "등록증.pdf", kind: "등록증" }],
   },
   {
     id: "IP-4",
@@ -56,7 +66,7 @@ export const patents: Patent[] = [
     number: "제2024-12345호",
     manager: "이준헌",
     note: "유효기간 2027-03",
-    docs: ["인증서"],
+    docs: [{ id: "ip5-d1", name: "인증서.pdf", kind: "인증서" }],
   },
 ];
 
@@ -73,7 +83,7 @@ export interface Asset {
   location: string;
   managerPrimary: string;
   managerSub: string;
-  docs: string[];
+  docs: AttachFile[];
 }
 
 export const assets: Asset[] = [
@@ -90,7 +100,11 @@ export const assets: Asset[] = [
     location: "연구동 2층",
     managerPrimary: "이준헌",
     managerSub: "김서연",
-    docs: ["계약서", "전자세금계산서", "증빙사진"],
+    docs: [
+      { id: "s001-d1", name: "계약서.pdf", kind: "계약서" },
+      { id: "s001-d2", name: "전자세금계산서.pdf", kind: "전자세금계산서" },
+      { id: "s001-d3", name: "증빙사진.jpg", kind: "증빙사진" },
+    ],
   },
   {
     id: "S-002",
@@ -105,7 +119,10 @@ export const assets: Asset[] = [
     location: "연구동 1층",
     managerPrimary: "이준헌",
     managerSub: "박민호",
-    docs: ["거래명세서", "입금내역확인증"],
+    docs: [
+      { id: "s002-d1", name: "거래명세서.pdf", kind: "거래명세서" },
+      { id: "s002-d2", name: "입금내역확인증.pdf", kind: "입금내역확인증" },
+    ],
   },
   {
     id: "R-011",
@@ -120,7 +137,7 @@ export const assets: Asset[] = [
     location: "본사 사무실",
     managerPrimary: "박민호",
     managerSub: "-",
-    docs: ["카드매출전표"],
+    docs: [{ id: "r011-d1", name: "카드매출전표.pdf", kind: "카드매출전표" }],
   },
   {
     id: "R-012",
@@ -135,7 +152,10 @@ export const assets: Asset[] = [
     location: "생산동",
     managerPrimary: "김서연",
     managerSub: "박민호",
-    docs: ["계약서", "증빙사진"],
+    docs: [
+      { id: "r012-d1", name: "계약서.pdf", kind: "계약서" },
+      { id: "r012-d2", name: "증빙사진.jpg", kind: "증빙사진" },
+    ],
   },
 ];
 
