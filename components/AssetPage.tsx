@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Plus, FileText, Image as ImageIcon } from "lucide-react";
-import { assetTxs, type AssetTxType } from "@/lib/mockData";
+import { assetTxs as mockAssetTxs, type AssetTx, type AssetTxType } from "@/lib/mockData";
+import AssetFormModal from "@/components/AssetFormModal";
 
 const typeBadge: Record<AssetTxType, string> = {
   입고: "bg-emerald-50 text-emerald-700",
@@ -30,11 +31,13 @@ const filters: ("전체" | AssetTxType)[] = ["전체", "입고", "출고", "폐�
 
 export default function AssetPage() {
   const [filter, setFilter] = useState<"전체" | AssetTxType>("전체");
+  const [list, setList] = useState<AssetTx[]>(mockAssetTxs);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const visible =
     filter === "전체"
-      ? assetTxs
-      : assetTxs.filter((t) => t.type === filter);
+      ? list
+      : list.filter((t) => t.type === filter);
 
   return (
     <div className="space-y-5 p-4 sm:p-6">
@@ -48,11 +51,21 @@ export default function AssetPage() {
             회사 구매 물품·소모품 입출 내역을 관리합니다
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600">
+        <button
+          onClick={() => setModalOpen(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600"
+        >
           <Plus size={16} />
           입출 등록
         </button>
       </div>
+
+      {modalOpen && (
+        <AssetFormModal
+          onClose={() => setModalOpen(false)}
+          onSubmit={(t) => setList((prev) => [t, ...prev])}
+        />
+      )}
 
       {/* 메트릭 카드 */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

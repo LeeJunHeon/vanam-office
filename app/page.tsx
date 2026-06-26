@@ -5,7 +5,7 @@ import { Menu } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import PatentPage from "@/components/PatentPage";
 import AssetPage from "@/components/AssetPage";
-import HrPage from "@/components/HrPage";
+import PersonalInfoPage from "@/components/PersonalInfoPage";
 
 type Page = "patent" | "asset" | "hr";
 
@@ -45,7 +45,7 @@ export default function Home() {
 
         {page === "patent" && <PatentPage />}
         {page === "asset" && <AssetPage />}
-        {page === "hr" && <HrPage />}
+        {page === "hr" && <PersonalInfoPage />}
       </main>
     </div>
   );

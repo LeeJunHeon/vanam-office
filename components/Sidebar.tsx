@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Award,
-  Package,
-  IdCard,
-  ExternalLink,
-  Briefcase,
-  LogOut,
-} from "lucide-react";
+import { Award, Package, IdCard, Briefcase, LogOut } from "lucide-react";
 
 type Page = "patent" | "asset" | "hr";
 
@@ -22,11 +15,10 @@ const navItems: {
   key: Page;
   label: string;
   icon: typeof Award;
-  external?: boolean;
 }[] = [
   { key: "patent", label: "특허관리", icon: Award },
   { key: "asset", label: "비품·자산 관리", icon: Package },
-  { key: "hr", label: "인사관리", icon: IdCard, external: true },
+  { key: "hr", label: "인사관리", icon: IdCard },
 ];
 
 export default function Sidebar({
@@ -87,9 +79,6 @@ export default function Sidebar({
               >
                 <Icon size={18} />
                 <span className="flex-1 text-left">{item.label}</span>
-                {item.external && (
-                  <ExternalLink size={13} className="text-gray-400" />
-                )}
               </button>
             );
           })}

@@ -7,7 +7,8 @@ import {
   FileText,
   Image as ImageIcon,
 } from "lucide-react";
-import { patents, type Patent, type PatentStatus } from "@/lib/mockData";
+import { patents as mockPatents, type Patent, type PatentStatus } from "@/lib/mockData";
+import PatentFormModal from "@/components/PatentFormModal";
 
 const statusBadge: Record<PatentStatus, string> = {
   등록: "bg-emerald-50 text-emerald-700",
@@ -37,11 +38,13 @@ const filters: ("전체" | PatentStatus)[] = [
 export default function PatentPage() {
   const [filter, setFilter] = useState<"전체" | PatentStatus>("전체");
   const [selected, setSelected] = useState<Patent | null>(null);
+  const [list, setList] = useState<Patent[]>(mockPatents);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const visible =
     filter === "전체"
-      ? patents
-      : patents.filter((p) => p.status === filter);
+      ? list
+      : list.filter((p) => p.status === filter);
 
   return (
     <div className="space-y-5 p-4 sm:p-6">
@@ -55,11 +58,21 @@ export default function PatentPage() {
             회사 보유 특허 출원·등록 현황을 관리합니다
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600">
+        <button
+          onClick={() => setModalOpen(true)}
+          className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600"
+        >
           <Plus size={16} />
           특허 등록
         </button>
       </div>
+
+      {modalOpen && (
+        <PatentFormModal
+          onClose={() => setModalOpen(false)}
+          onSubmit={(p) => setList((prev) => [p, ...prev])}
+        />
+      )}
 
       {selected ? (
         <PatentDetail patent={selected} onBack={() => setSelected(null)} />
