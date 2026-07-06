@@ -18,7 +18,7 @@ services:
       AUTH_TRUST_HOST: "true"
       UPLOAD_DIR: ${UPLOAD_DIR:-/app/uploads}
     volumes:
-      - /volume1/docker/vanam-office/uploads:/app/uploads
+      - /volume1/docker/office-web/uploads:/app/uploads
     networks:
       - vanam-db-net
 

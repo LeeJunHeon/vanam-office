@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-cd /volume1/docker/vanam-office
+cd /volume1/docker/office-web
 git pull
 export BUILDX_GIT_INFO=0
 sudo docker compose build nextjs
