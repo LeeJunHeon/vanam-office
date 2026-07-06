@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { IdCard, Search, Eye, EyeOff, Save, Trash2 } from "lucide-react";
+import { IdCard, Search, Eye, EyeOff, Save, Trash2, Plus } from "lucide-react";
 import type { PersonalListItem, PersonalDetail } from "@/lib/types";
 
 // office가 편집 가능한 인사정보 필드
@@ -82,6 +82,9 @@ export default function PersonalInfoPage() {
   const [toast, setToast] = useState("");
   const [showResident, setShowResident] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addName, setAddName] = useState("");
+  const [adding, setAdding] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -236,6 +239,56 @@ export default function PersonalInfoPage() {
     }
   };
 
+  const addPerson = async () => {
+    const name = addName.trim();
+    if (!name) return;
+    setAdding(true);
+    try {
+      const res = await fetch("/api/personal-info/persons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        showToast("직원 추가에 실패했습니다.");
+        return;
+      }
+      const { employeeId } = await res.json();
+      await loadList();
+      selectEmployee(employeeId);
+      setAddOpen(false);
+      setAddName("");
+      showToast("직원이 추가되었습니다.");
+    } catch {
+      showToast("직원 추가에 실패했습니다.");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const deletePerson = async () => {
+    if (selectedId === null) return;
+    if (
+      !confirm("이 인사 전용 직원을 삭제하시겠습니까? (인사정보도 함께 삭제됩니다)")
+    )
+      return;
+    try {
+      const res = await fetch(`/api/personal-info/persons/${selectedId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        showToast("직원 삭제에 실패했습니다.");
+        return;
+      }
+      await loadList();
+      setDetail(null);
+      setSelectedId(null);
+      showToast("직원이 삭제되었습니다.");
+    } catch {
+      showToast("직원 삭제에 실패했습니다.");
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6">
       {toast && (
@@ -259,6 +312,13 @@ export default function PersonalInfoPage() {
         {/* 좌측 목록 */}
         <div className="shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white lg:w-72">
           <div className="border-b border-gray-100 p-3">
+            <button
+              onClick={() => setAddOpen(true)}
+              className="mb-2 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              <Plus size={15} />
+              인사 전용 직원 추가
+            </button>
             <div className="relative">
               <Search
                 size={15}
@@ -329,6 +389,15 @@ export default function PersonalInfoPage() {
                         >
                           <Trash2 size={15} />
                           인사정보 비우기
+                        </button>
+                      )}
+                      {detail.isHrOnly && (
+                        <button
+                          onClick={deletePerson}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
+                        >
+                          <Trash2 size={15} />
+                          직원 삭제
                         </button>
                       )}
                     </>
@@ -511,6 +580,43 @@ export default function PersonalInfoPage() {
           )}
         </div>
       </div>
+
+      {/* 인사 전용 직원 추가 모달 */}
+      {addOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <h3 className="mb-1 text-base font-bold text-gray-900">
+              인사 전용 직원 추가
+            </h3>
+            <p className="mb-4 text-xs text-gray-500">
+              근태(출퇴근)에는 표시되지 않는 인사정보 전용 직원입니다.
+            </p>
+            <input
+              autoFocus
+              value={addName}
+              onChange={(e) => setAddName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addPerson()}
+              placeholder="이름"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setAddOpen(false)}
+                className="rounded-xl bg-gray-100 px-4 py-2 text-sm text-gray-600 hover:bg-gray-200"
+              >
+                취소
+              </button>
+              <button
+                onClick={addPerson}
+                disabled={adding}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                추가
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
