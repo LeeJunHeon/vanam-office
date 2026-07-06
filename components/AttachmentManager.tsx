@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { FileText, Upload, Download, X } from "lucide-react";
 
+// fetch·에셋과 달리 원시 <img>·<a>에는 Next가 basePath를 자동으로 붙이지 않으므로 수동 적용
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 type Att = {
   id: number;
   docTypeCode: string | null;
@@ -143,7 +146,7 @@ export default function AttachmentManager({
               {it.mimeType?.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`/api/attachments/${it.id}/file`}
+                  src={`${BASE_PATH}/api/attachments/${it.id}/file`}
                   alt={it.originalName}
                   className="h-9 w-9 shrink-0 rounded object-cover"
                 />
@@ -164,7 +167,7 @@ export default function AttachmentManager({
                 </span>
               )}
               <a
-                href={`/api/attachments/${it.id}/file?download=1`}
+                href={`${BASE_PATH}/api/attachments/${it.id}/file?download=1`}
                 className="text-gray-400 hover:text-blue-600"
                 title="다운로드"
               >
