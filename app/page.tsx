@@ -1,52 +1,15 @@
-"use client";
+import { auth } from "@/auth";
+import AppShell from "@/components/AppShell";
+import NoAccess from "@/components/NoAccess";
 
-import { useState } from "react";
-import { Menu } from "lucide-react";
-import Sidebar from "@/components/Sidebar";
-import PatentPage from "@/components/PatentPage";
-import AssetPage from "@/components/AssetPage";
-import PersonalInfoPage from "@/components/PersonalInfoPage";
+const disableAuth = process.env.DISABLE_AUTH === "true";
 
-type Page = "patent" | "asset" | "hr";
-
-const pageTitle: Record<Page, string> = {
-  patent: "특허관리",
-  asset: "비품·자산 관리",
-  hr: "인사관리",
-};
-
-export default function Home() {
-  const [page, setPage] = useState<Page>("patent");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  return (
-    <div className="flex h-screen">
-      <Sidebar
-        currentPage={page}
-        onNavigate={setPage}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-
-      <main className="flex-1 overflow-y-auto bg-gray-50">
-        {/* 모바일 상단바 */}
-        <div className="flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-3 lg:hidden">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-1.5 text-gray-600 hover:bg-gray-100"
-            aria-label="메뉴 열기"
-          >
-            <Menu size={20} />
-          </button>
-          <span className="text-sm font-bold text-gray-900">
-            {pageTitle[page]}
-          </span>
-        </div>
-
-        {page === "patent" && <PatentPage />}
-        {page === "asset" && <AssetPage />}
-        {page === "hr" && <PersonalInfoPage />}
-      </main>
-    </div>
-  );
+export default async function Page() {
+  // 로컬 UI 확인 모드는 통과
+  if (disableAuth) return <AppShell />;
+  // 미인증은 proxy.ts가 이미 포털 로그인으로 보냄. 여기선 로그인했으나 권한 없는 경우를 차단.
+  const session = await auth();
+  const role = session?.user?.role;
+  const isAdmin = role === "admin" || role === "ceo";
+  return isAdmin ? <AppShell /> : <NoAccess />;
 }

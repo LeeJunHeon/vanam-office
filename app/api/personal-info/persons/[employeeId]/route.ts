@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs"; // Prisma는 edge 불가
 
 // DELETE /api/personal-info/persons/[employeeId] — 인사 전용 직원 삭제
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ employeeId: string }> },
 ) {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const { employeeId } = await params;
 

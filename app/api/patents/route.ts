@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs"; // Prisma는 edge 불가
 
 // GET /api/patents — 지식재산권 대장 전체
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function GET() {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const patents = await prisma.patent.findMany({ orderBy: { id: "desc" } });
     return NextResponse.json(patents);
@@ -18,8 +21,10 @@ export async function GET() {
 }
 
 // POST /api/patents — 지식재산권 등록
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function POST(request: Request) {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const body = await request.json();
     const { ipTypeCode, name, number, manager, note } = body ?? {};

@@ -2,16 +2,19 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-helpers";
 import { uploadDir } from "@/lib/uploadDir";
 
 export const runtime = "nodejs"; // Prisma·fs는 edge 불가
 
 // DELETE /api/attachments/[id] — 파일 삭제(파일시스템 + DB)
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const { id } = await params;
     const row = await prisma.attachment.findUnique({

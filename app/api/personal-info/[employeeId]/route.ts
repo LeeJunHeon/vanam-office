@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-helpers";
 import type { PersonalDetail } from "@/lib/types";
 
 export const runtime = "nodejs"; // Prisma는 edge 불가
 
 // GET /api/personal-info/[employeeId] — 신원(hr 읽기) + 인사정보(office)
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ employeeId: string }> },
 ) {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const { employeeId } = await params;
     const e = await prisma.employee.findUnique({
@@ -64,11 +67,13 @@ export async function GET(
 }
 
 // PUT /api/personal-info/[employeeId] — office 인사정보만 upsert(hr 필드엔 쓰지 않음)
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ employeeId: string }> },
 ) {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const { employeeId } = await params;
     const body = await request.json();
@@ -108,11 +113,13 @@ export async function PUT(
 }
 
 // DELETE /api/personal-info/[employeeId] — 인사정보만 비움(직원은 삭제하지 않음)
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ employeeId: string }> },
 ) {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const { employeeId } = await params;
     await prisma.employeePersonalInfo.deleteMany({

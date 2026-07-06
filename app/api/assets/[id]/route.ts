@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs"; // Prisma는 edge 불가
 
 // PATCH /api/assets/[id] — 장비 부분 수정
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -46,11 +49,13 @@ export async function PATCH(
 }
 
 // DELETE /api/assets/[id] — 장비 삭제
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const { id } = await params;
     await prisma.asset.delete({ where: { id: Number(id) } });

@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-helpers";
 import { uploadDir } from "@/lib/uploadDir";
 
 export const runtime = "nodejs"; // Prisma·fs는 edge 불가
 
 // GET /api/attachments?entityType=&entityId= — 엔티티별 첨부 목록
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function GET(request: Request) {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const entityType = searchParams.get("entityType");
@@ -36,8 +39,10 @@ export async function GET(request: Request) {
 }
 
 // POST /api/attachments (multipart) — 파일 업로드(파일시스템 저장 + DB엔 경로만)
-// TODO: 인증 단계에서 requireSession + isAdminSession 가드 추가
 export async function POST(request: Request) {
+  const _auth = await requireAdmin();
+  if (!_auth.ok) return _auth.response;
+
   try {
     const form = await request.formData();
     const entityType = form.get("entityType");
