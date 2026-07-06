@@ -1,17 +1,56 @@
 "use client";
 
-import { useState } from "react";
-import {
-  IdCard,
-  Plus,
-  Search,
-  Eye,
-  EyeOff,
-  Save,
-  Trash2,
-  X,
-} from "lucide-react";
-import { mockPersonalInfos, type PersonalInfo } from "@/lib/mockData";
+import { useCallback, useEffect, useState } from "react";
+import { IdCard, Search, Eye, EyeOff, Save, Trash2 } from "lucide-react";
+import type { PersonalListItem, PersonalDetail } from "@/lib/types";
+
+// office가 편집 가능한 인사정보 필드
+type FormKey =
+  | "hrName"
+  | "hrPosition"
+  | "hrDepartment"
+  | "hrPhone"
+  | "researcherNumber"
+  | "university"
+  | "finalDegree"
+  | "major"
+  | "graduationYearmonth"
+  | "degreeNumber"
+  | "residentNumber"
+  | "address"
+  | "bankName"
+  | "accountNumber"
+  | "accountHolder";
+
+type PersonalForm = Record<FormKey, string>;
+
+const FORM_KEYS: FormKey[] = [
+  "hrName",
+  "hrPosition",
+  "hrDepartment",
+  "hrPhone",
+  "researcherNumber",
+  "university",
+  "finalDegree",
+  "major",
+  "graduationYearmonth",
+  "degreeNumber",
+  "residentNumber",
+  "address",
+  "bankName",
+  "accountNumber",
+  "accountHolder",
+];
+
+function emptyForm(): PersonalForm {
+  return Object.fromEntries(FORM_KEYS.map((k) => [k, ""])) as PersonalForm;
+}
+
+function formFromDetail(d: PersonalDetail): PersonalForm {
+  return Object.fromEntries(
+    FORM_KEYS.map((k) => [k, d[k] ?? ""]),
+  ) as PersonalForm;
+}
 
 function maskValue(v: string | null): string {
   if (!v) return "-";
@@ -33,33 +72,51 @@ function maskValue(v: string | null): string {
 }
 
 export default function PersonalInfoPage() {
-  const [list, setList] = useState<PersonalInfo[]>(mockPersonalInfos);
-  const [selectedId, setSelectedId] = useState<number | null>(
-    mockPersonalInfos[0]?.employeeId ?? null
-  );
+  const [list, setList] = useState<PersonalListItem[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<PersonalDetail | null>(null);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<PersonalInfo | null>(null);
+  const [form, setForm] = useState<PersonalForm>(emptyForm());
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-  const [addOpen, setAddOpen] = useState(false);
-  const [addName, setAddName] = useState("");
   const [toast, setToast] = useState("");
-  const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [showResident, setShowResident] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
-
-  const detail = list.find((p) => p.employeeId === selectedId) ?? null;
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2500);
   };
 
+  const loadList = useCallback(async () => {
+    try {
+      const res = await fetch("/api/personal-info");
+      if (!res.ok) return;
+      setList(await res.json());
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const loadDetail = useCallback(async (id: number) => {
+    try {
+      const res = await fetch(`/api/personal-info/${id}`);
+      if (!res.ok) return;
+      setDetail(await res.json());
+      setEditing(false);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    loadList();
+  }, [loadList]);
+
   const filtered = search
     ? list.filter(
         (p) =>
-          p.hrName.includes(search) ||
-          p.name.includes(search) ||
-          (p.employeeNo ?? "").includes(search)
+          p.name.includes(search) || (p.employeeNo ?? "").includes(search),
       )
     : list;
 
@@ -75,12 +132,12 @@ export default function PersonalInfoPage() {
     label: string,
     value: string | null,
     show: boolean,
-    setShow: (v: boolean) => void
+    setShow: (v: boolean) => void,
   ) => (
     <div>
       <div className="text-xs text-gray-500">{label}</div>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-mono text-gray-900">
+        <span className="font-mono text-sm text-gray-900">
           {show ? value || "-" : maskValue(value)}
         </span>
         {value && (
@@ -96,11 +153,16 @@ export default function PersonalInfoPage() {
     </div>
   );
 
-  const inputField = (
-    label: string,
-    key: keyof PersonalInfo,
-    placeholder?: string
-  ) => (
+  const readonlyField = (label: string, value: string | null) => (
+    <div>
+      <div className="mb-1 text-xs font-medium text-gray-600">{label}</div>
+      <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-400">
+        {value || "-"}
+      </div>
+    </div>
+  );
+
+  const inputField = (label: string, key: FormKey, placeholder?: string) => (
     <div>
       <label className="mb-1 block text-xs font-medium text-gray-600">
         {label}
@@ -108,130 +170,70 @@ export default function PersonalInfoPage() {
       <input
         className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200"
         placeholder={placeholder}
-        value={form ? (form[key] as string | null) ?? "" : ""}
+        value={form[key]}
         onChange={(e) =>
-          setForm((f) => (f ? { ...f, [key]: e.target.value } : f))
+          setForm((f) => ({ ...f, [key]: e.target.value }))
         }
       />
     </div>
   );
 
   // ── 동작 ──
+  const selectEmployee = (id: number) => {
+    setSelectedId(id);
+    loadDetail(id);
+  };
+
   const startEdit = () => {
     if (!detail) return;
-    setForm(detail);
+    setForm(formFromDetail(detail));
     setEditing(true);
   };
 
-  const save = () => {
-    if (!form) return;
-    setList((prev) =>
-      prev.map((p) => (p.employeeId === form.employeeId ? form : p))
-    );
-    setEditing(false);
-    showToast("저장되었습니다.");
+  const save = async () => {
+    if (selectedId === null) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/personal-info/${selectedId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        showToast("저장에 실패했습니다.");
+        return;
+      }
+      await loadDetail(selectedId);
+      await loadList();
+      showToast("저장되었습니다.");
+    } catch {
+      showToast("저장에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const cancel = () => {
     setEditing(false);
-    setForm(detail);
   };
 
-  const remove = () => {
-    if (!detail) return;
-    if (!confirm("삭제하시겠습니까?")) return;
-    if (detail.isHrOnly) {
-      setList((prev) => {
-        const next = prev.filter((p) => p.employeeId !== detail.employeeId);
-        setSelectedId(next[0]?.employeeId ?? null);
-        return next;
+  const remove = async () => {
+    if (selectedId === null) return;
+    if (!confirm("인사정보를 비우시겠습니까? (직원은 삭제되지 않습니다)")) return;
+    try {
+      const res = await fetch(`/api/personal-info/${selectedId}`, {
+        method: "DELETE",
       });
-    } else {
-      setList((prev) =>
-        prev.map((p) =>
-          p.employeeId === detail.employeeId
-            ? {
-                ...p,
-                hrName: p.name,
-                employeeNo: null,
-                hrPosition: null,
-                hrDepartment: null,
-                hiredAt: null,
-                researcherNumber: null,
-                university: null,
-                finalDegree: null,
-                major: null,
-                graduationYearmonth: null,
-                degreeNumber: null,
-                residentNumber: null,
-                hrPhone: null,
-                address: null,
-                email: null,
-                bankName: null,
-                accountNumber: null,
-                accountHolder: null,
-                hasInfo: false,
-              }
-            : p
-        )
-      );
+      if (!res.ok) {
+        showToast("삭제에 실패했습니다.");
+        return;
+      }
+      await loadDetail(selectedId);
+      await loadList();
+      showToast("인사정보가 비워졌습니다.");
+    } catch {
+      showToast("삭제에 실패했습니다.");
     }
-    setEditing(false);
-    showToast("삭제되었습니다.");
-  };
-
-  const addEmployee = () => {
-    const name = addName.trim();
-    if (!name) return;
-    const newId =
-      list.reduce((max, p) => Math.max(max, p.employeeId), 0) + 1;
-    const newPerson: PersonalInfo = {
-      employeeId: newId,
-      name: "-",
-      positionName: null,
-      departmentName: null,
-      hrName: name,
-      employeeNo: null,
-      hrPosition: null,
-      hrDepartment: null,
-      hiredAt: null,
-      researcherNumber: null,
-      university: null,
-      finalDegree: null,
-      major: null,
-      graduationYearmonth: null,
-      degreeNumber: null,
-      residentNumber: null,
-      hrPhone: null,
-      address: null,
-      email: null,
-      bankName: null,
-      accountNumber: null,
-      accountHolder: null,
-      hasInfo: true,
-      isHrOnly: true,
-    };
-    setList((prev) => [...prev, newPerson]);
-    setSelectedId(newId);
-    setEditing(false);
-    setAddOpen(false);
-    setAddName("");
-    showToast("직원이 추가되었습니다.");
-  };
-
-  const onDrop = (dropIndex: number) => {
-    if (search) return;
-    if (dragIndex === null || dragIndex === dropIndex) {
-      setDragIndex(null);
-      return;
-    }
-    setList((prev) => {
-      const next = [...prev];
-      const [moved] = next.splice(dragIndex, 1);
-      next.splice(dropIndex, 0, moved);
-      return next;
-    });
-    setDragIndex(null);
   };
 
   return (
@@ -249,7 +251,7 @@ export default function PersonalInfoPage() {
           인사정보 카드
         </h1>
         <p className="mt-0.5 text-sm text-gray-500">
-          직원의 인사 기준 정보·학력·계좌 등을 관리합니다 (제한된 권한자만 접근)
+          직원 인사정보(제한된 권한자만 접근)
         </p>
       </div>
 
@@ -257,14 +259,7 @@ export default function PersonalInfoPage() {
         {/* 좌측 목록 */}
         <div className="shrink-0 overflow-hidden rounded-2xl border border-gray-100 bg-white lg:w-72">
           <div className="border-b border-gray-100 p-3">
-            <button
-              onClick={() => setAddOpen(true)}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              <Plus size={15} />
-              직원 추가
-            </button>
-            <div className="relative mt-3">
+            <div className="relative">
               <Search
                 size={15}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -278,39 +273,29 @@ export default function PersonalInfoPage() {
             </div>
           </div>
           <div className="max-h-[70vh] overflow-y-auto">
-            {filtered.map((p) => {
-              const realIndex = list.indexOf(p);
-              return (
-                <button
-                  key={p.employeeId}
-                  draggable
-                  onDragStart={() => setDragIndex(realIndex)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => onDrop(realIndex)}
-                  onClick={() => {
-                    setSelectedId(p.employeeId);
-                    setEditing(false);
-                  }}
-                  className={`block w-full border-b border-gray-50 px-4 py-3 text-left ${
-                    p.employeeId === selectedId ? "bg-blue-50" : ""
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium text-gray-900">
-                      {p.hrName}
+            {filtered.map((p) => (
+              <button
+                key={p.employeeId}
+                onClick={() => selectEmployee(p.employeeId)}
+                className={`block w-full border-b border-gray-50 px-4 py-3 text-left ${
+                  p.employeeId === selectedId ? "bg-blue-50" : ""
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium text-gray-900">
+                    {p.name}
+                  </span>
+                  {p.isHrOnly && (
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
+                      인사전용
                     </span>
-                    {p.isHrOnly && (
-                      <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
-                        인사전용
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {p.employeeNo ?? "-"}
-                  </div>
-                </button>
-              );
-            })}
+                  )}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {p.employeeNo ?? "-"}
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -321,7 +306,7 @@ export default function PersonalInfoPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="text-lg font-bold text-gray-900">
-                    {detail.hrName}
+                    {detail.hrName || detail.name}
                   </div>
                   <div className="text-sm text-gray-500">
                     {detail.hrPosition || detail.positionName || "-"} ·{" "}
@@ -343,7 +328,7 @@ export default function PersonalInfoPage() {
                           className="inline-flex items-center gap-1.5 rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100"
                         >
                           <Trash2 size={15} />
-                          삭제
+                          인사정보 비우기
                         </button>
                       )}
                     </>
@@ -351,7 +336,8 @@ export default function PersonalInfoPage() {
                     <>
                       <button
                         onClick={save}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                        disabled={saving}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
                       >
                         <Save size={15} />
                         저장
@@ -379,14 +365,9 @@ export default function PersonalInfoPage() {
                         {field("사번", detail.employeeNo)}
                         {field("직책", detail.hrPosition)}
                         {field("소속", detail.hrDepartment)}
-                        {field("입사일", detail.hiredAt)}
+                        {field("입사일", detail.hiredAt?.slice(0, 10) ?? null)}
                         {field("국가연구자 번호", detail.researcherNumber)}
                       </div>
-                      <p className="mt-2 text-[11px] text-gray-400">
-                        근태 시스템 등록명: {detail.name} ·{" "}
-                        {detail.positionName || "-"} ·{" "}
-                        {detail.departmentName || "-"}
-                      </p>
                     </div>
 
                     {/* 졸업 대학 정보 */}
@@ -413,7 +394,7 @@ export default function PersonalInfoPage() {
                           "주민번호",
                           detail.residentNumber,
                           showResident,
-                          setShowResident
+                          setShowResident,
                         )}
                         {field("연락처", detail.hrPhone)}
                         {field("주소", detail.address)}
@@ -432,7 +413,7 @@ export default function PersonalInfoPage() {
                           "계좌",
                           detail.accountNumber,
                           showAccount,
-                          setShowAccount
+                          setShowAccount,
                         )}
                         {field("예금주", detail.accountHolder)}
                       </div>
@@ -441,14 +422,24 @@ export default function PersonalInfoPage() {
                 ) : (
                   <div className="space-y-5">
                     <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
-                      사번·이메일·입사일은 직원 관리와 공유됩니다(여기서 수정하면
-                      직원 관리에도 반영). 성명/직책/소속/연락처는 인사정보 카드
-                      전용입니다.
+                      직원 신원(사번·이메일·입사일·소속·직책)은 근태에서 관리되어
+                      여기선 조회만 됩니다. 이 화면에선 인사정보(성명·학위·통장 등)만
+                      편집합니다.
                     </div>
 
-                    {/* 성명 */}
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {inputField("성명(한글)", "hrName")}
+                    {/* 신원(읽기 전용) */}
+                    <div>
+                      <h3 className="mb-2 text-xs font-bold text-gray-700">
+                        신원 (근태 관리 · 읽기 전용)
+                      </h3>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        {readonlyField("사번", detail.employeeNo)}
+                        {readonlyField("이메일", detail.email)}
+                        {readonlyField(
+                          "입사일",
+                          detail.hiredAt?.slice(0, 10) ?? null,
+                        )}
+                      </div>
                     </div>
 
                     {/* 회사 */}
@@ -457,10 +448,10 @@ export default function PersonalInfoPage() {
                         회사
                       </h3>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        {inputField("사번", "employeeNo")}
+                        {inputField("성명(한글)", "hrName")}
                         {inputField("직책", "hrPosition")}
                         {inputField("소속", "hrDepartment")}
-                        {inputField("입사일", "hiredAt", "예: 2024-01-15")}
+                        {inputField("연락처", "hrPhone")}
                         {inputField("국가연구자 번호", "researcherNumber")}
                       </div>
                     </div>
@@ -477,7 +468,7 @@ export default function PersonalInfoPage() {
                         {inputField(
                           "졸업년월",
                           "graduationYearmonth",
-                          "예: 2020-02"
+                          "예: 2020-02",
                         )}
                         {inputField("학위등록번호", "degreeNumber")}
                       </div>
@@ -492,11 +483,9 @@ export default function PersonalInfoPage() {
                         {inputField(
                           "주민번호",
                           "residentNumber",
-                          "예: 000000-0000000"
+                          "예: 000000-0000000",
                         )}
-                        {inputField("연락처", "hrPhone")}
                         {inputField("주소", "address")}
-                        {inputField("이메일", "email")}
                       </div>
                     </div>
 
@@ -517,55 +506,11 @@ export default function PersonalInfoPage() {
             </>
           ) : (
             <div className="py-20 text-center text-sm text-gray-400">
-              정보를 불러올 수 없습니다.
+              왼쪽에서 직원을 선택하세요
             </div>
           )}
         </div>
       </div>
-
-      {/* 직원 추가 모달 */}
-      {addOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
-            <div className="flex items-start justify-between">
-              <h3 className="text-base font-bold text-gray-900">
-                인사 전용 직원 추가
-              </h3>
-              <button
-                onClick={() => setAddOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <p className="mt-1 text-xs text-gray-500">
-              근태 시스템에는 표시되지 않는 인사정보 카드 전용 직원입니다.
-            </p>
-            <input
-              autoFocus
-              value={addName}
-              onChange={(e) => setAddName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addEmployee()}
-              placeholder="이름"
-              className="mt-4 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200"
-            />
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={() => setAddOpen(false)}
-                className="rounded-xl bg-gray-100 px-4 py-2 text-sm text-gray-600 hover:bg-gray-200"
-              >
-                취소
-              </button>
-              <button
-                onClick={addEmployee}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                추가
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

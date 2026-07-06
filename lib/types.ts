@@ -25,3 +25,43 @@ export type Asset = {
   managerPrimary: string | null;
   managerSub: string | null;
 };
+
+// 인사관리 — 신원은 hr(읽기), 인사정보는 office(편집)
+export type PersonalListItem = {
+  employeeId: number;
+  name: string;
+  employeeNo: string | null;
+  positionName: string | null;
+  departmentName: string | null;
+  isHrOnly: boolean;
+  hasInfo: boolean;
+};
+
+export type PersonalDetail = {
+  employeeId: number;
+  // hr 신원(읽기 전용)
+  name: string;
+  employeeNo: string | null;
+  email: string | null;
+  hiredAt: string | null;
+  positionName: string | null;
+  departmentName: string | null;
+  isHrOnly: boolean;
+  // office 인사정보(편집 가능)
+  hasInfo: boolean;
+  hrName: string | null;
+  hrPosition: string | null;
+  hrDepartment: string | null;
+  hrPhone: string | null;
+  researcherNumber: string | null;
+  university: string | null;
+  finalDegree: string | null;
+  major: string | null;
+  graduationYearmonth: string | null;
+  degreeNumber: string | null;
+  residentNumber: string | null;
+  address: string | null;
+  bankName: string | null;
+  accountNumber: string | null;
+  accountHolder: string | null;
+};
