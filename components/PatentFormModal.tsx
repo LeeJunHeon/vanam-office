@@ -4,13 +4,10 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import type { Patent } from "@/lib/types";
 import type { LookupItem } from "@/lib/useLookups";
-import type { AttachFile } from "@/lib/mockData";
-import AttachmentField from "@/components/AttachmentField";
 
 interface PatentFormModalProps {
   initial?: Patent;
   ipTypes: LookupItem[];
-  docTypes: string[];
   onClose: () => void;
   onSubmit: (p: {
     ipTypeCode: string;
@@ -28,7 +25,6 @@ const labelCls = "mb-1 block text-xs font-medium text-gray-600";
 export default function PatentFormModal({
   initial,
   ipTypes,
-  docTypes,
   onClose,
   onSubmit,
 }: PatentFormModalProps) {
@@ -39,8 +35,6 @@ export default function PatentFormModal({
   const [number, setNumber] = useState(initial?.number ?? "");
   const [manager, setManager] = useState(initial?.manager ?? "");
   const [note, setNote] = useState(initial?.note ?? "");
-  // 첨부는 로컬 표시용(저장엔 사용 안 함)
-  const [docs, setDocs] = useState<AttachFile[]>([]);
 
   const submit = () => {
     if (!name.trim() || !ipTypeCode) return;
@@ -117,17 +111,6 @@ export default function PatentFormModal({
               onChange={(e) => setNote(e.target.value)}
             />
           </div>
-        </div>
-
-        {/* 첨부 파일 (브라우저 메모리만, 저장엔 미사용) */}
-        <div className="mt-4">
-          <label className={labelCls}>첨부 파일</label>
-          <AttachmentField
-            files={docs}
-            onChange={setDocs}
-            docTypes={docTypes}
-            editable
-          />
         </div>
 
         <div className="mt-6 flex justify-end gap-2">

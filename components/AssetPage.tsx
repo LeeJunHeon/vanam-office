@@ -6,7 +6,7 @@ import type { Asset } from "@/lib/types";
 import { assetKind, ASSET_KIND_BADGE } from "@/lib/lookups";
 import { useLookups } from "@/lib/useLookups";
 import AssetFormModal from "@/components/AssetFormModal";
-import AttachmentField from "@/components/AttachmentField";
+import AttachmentManager from "@/components/AttachmentManager";
 
 function KindBadge({ assetNo }: { assetNo: string | null }) {
   const kind = assetKind(assetNo ?? "");
@@ -41,7 +41,7 @@ export default function AssetPage() {
   const [toast, setToast] = useState("");
 
   const { lookups } = useLookups();
-  const assetDocTypes = (lookups.asset_doc_type ?? []).map((l) => l.label);
+  const assetDocTypes = lookups.asset_doc_type ?? [];
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -164,7 +164,6 @@ export default function AssetPage() {
       {modalOpen && (
         <AssetFormModal
           initial={editing ?? undefined}
-          docTypes={assetDocTypes}
           onClose={() => setModalOpen(false)}
           onSubmit={handleSubmit}
         />
@@ -173,6 +172,7 @@ export default function AssetPage() {
       {selected ? (
         <AssetDetail
           asset={selected}
+          docTypes={assetDocTypes}
           onBack={() => setSelected(null)}
           onEdit={() => openEdit(selected)}
           onDelete={() => handleDelete(selected)}
@@ -281,11 +281,13 @@ export default function AssetPage() {
 
 function AssetDetail({
   asset,
+  docTypes,
   onBack,
   onEdit,
   onDelete,
 }: {
   asset: Asset;
+  docTypes: { code: string; label: string }[];
   onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -342,11 +344,10 @@ function AssetDetail({
       {/* 첨부 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <h3 className="mb-3 text-sm font-semibold text-gray-900">관련 서류</h3>
-        <AttachmentField
-          files={[]}
-          onChange={() => {}}
-          docTypes={[]}
-          editable={false}
+        <AttachmentManager
+          entityType="asset"
+          entityId={asset.id}
+          docTypes={docTypes}
         />
       </div>
     </div>

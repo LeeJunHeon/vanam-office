@@ -3,12 +3,9 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import type { Asset } from "@/lib/types";
-import type { AttachFile } from "@/lib/mockData";
-import AttachmentField from "@/components/AttachmentField";
 
 interface AssetFormModalProps {
   initial?: Asset;
-  docTypes: string[];
   onClose: () => void;
   onSubmit: (p: {
     purchaseDate: string;
@@ -31,7 +28,6 @@ const labelCls = "mb-1 block text-xs font-medium text-gray-600";
 
 export default function AssetFormModal({
   initial,
-  docTypes,
   onClose,
   onSubmit,
 }: AssetFormModalProps) {
@@ -50,8 +46,6 @@ export default function AssetFormModal({
     initial?.managerPrimary ?? ""
   );
   const [managerSub, setManagerSub] = useState(initial?.managerSub ?? "");
-  // 첨부는 로컬 표시용(저장엔 사용 안 함)
-  const [docs, setDocs] = useState<AttachFile[]>([]);
 
   const submit = () => {
     if (!name.trim()) return;
@@ -179,17 +173,6 @@ export default function AssetFormModal({
               onChange={(e) => setManagerSub(e.target.value)}
             />
           </div>
-        </div>
-
-        {/* 첨부 파일 (브라우저 메모리만, 저장엔 미사용) */}
-        <div className="mt-4">
-          <label className={labelCls}>첨부 파일</label>
-          <AttachmentField
-            files={docs}
-            onChange={setDocs}
-            docTypes={docTypes}
-            editable
-          />
         </div>
 
         <div className="mt-6 flex justify-end gap-2">

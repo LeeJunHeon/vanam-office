@@ -6,7 +6,7 @@ import type { Patent } from "@/lib/types";
 import { useLookups } from "@/lib/useLookups";
 import { badgeClass } from "@/lib/lookups";
 import PatentFormModal from "@/components/PatentFormModal";
-import AttachmentField from "@/components/AttachmentField";
+import AttachmentManager from "@/components/AttachmentManager";
 
 export default function PatentPage() {
   const [patents, setPatents] = useState<Patent[]>([]);
@@ -18,7 +18,7 @@ export default function PatentPage() {
 
   const { lookups } = useLookups();
   const ipTypes = lookups.ip_type ?? [];
-  const patentDocTypes = (lookups.patent_doc_type ?? []).map((l) => l.label);
+  const patentDocTypes = lookups.patent_doc_type ?? [];
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -161,7 +161,6 @@ export default function PatentPage() {
         <PatentFormModal
           initial={editing ?? undefined}
           ipTypes={ipTypes}
-          docTypes={patentDocTypes}
           onClose={() => setModalOpen(false)}
           onSubmit={handleSubmit}
         />
@@ -172,6 +171,7 @@ export default function PatentPage() {
           patent={selected}
           TypeBadge={TypeBadge}
           labelOf={labelOf}
+          docTypes={patentDocTypes}
           onBack={() => setSelected(null)}
           onEdit={() => openEdit(selected)}
           onDelete={() => handleDelete(selected)}
@@ -278,6 +278,7 @@ function PatentDetail({
   patent,
   TypeBadge,
   labelOf,
+  docTypes,
   onBack,
   onEdit,
   onDelete,
@@ -285,6 +286,7 @@ function PatentDetail({
   patent: Patent;
   TypeBadge: (props: { code: string }) => React.ReactElement;
   labelOf: (code: string) => string;
+  docTypes: { code: string; label: string }[];
   onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -335,11 +337,10 @@ function PatentDetail({
       {/* 첨부 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <h3 className="mb-3 text-sm font-semibold text-gray-900">관련 문서</h3>
-        <AttachmentField
-          files={[]}
-          onChange={() => {}}
-          docTypes={[]}
-          editable={false}
+        <AttachmentManager
+          entityType="patent"
+          entityId={patent.id}
+          docTypes={docTypes}
         />
       </div>
     </div>

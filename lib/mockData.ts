@@ -1,14 +1,6 @@
 // 데모용 목 데이터 — 인사관리(PersonalInfoPage)에서만 사용.
 // 특허·자산은 실제 DB API(/api/patents, /api/assets)로 이전됨.
 
-export interface AttachFile {
-  id: string;
-  name: string;
-  kind: string;
-  size?: number;
-  url?: string;
-}
-
 export interface PersonalInfo {
   employeeId: number;
   name: string;

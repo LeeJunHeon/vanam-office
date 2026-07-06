@@ -5,6 +5,9 @@
 
 # prisma generated client (커밋 금지)
 /app/generated
+
+# 업로드된 첨부 파일 (커밋 금지)
+/uploads
 /.pnp
 .pnp.*
 .yarn/*
