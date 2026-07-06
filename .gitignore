@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+
+# prisma generated client (커밋 금지)
+/app/generated
 /.pnp
 .pnp.*
 .yarn/*
@@ -33,6 +36,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

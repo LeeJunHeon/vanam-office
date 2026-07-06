@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["office", "public"]
+}
+
+// public.user — SSO 공유 (office가 만들지 않음, 매핑만)
+model User {
+  id       Int     @id @default(autoincrement())
+  name     String
+  email    String? @unique
+  role     String?
+  isActive String  @default("Y") @map("is_active")
+
+  @@map("user")
+  @@schema("public")
+}
+
+// office.code_lookups — 지재권 종류/서류 종류 룩업
+model CodeLookup {
+  id          Int      @id @default(autoincrement())
+  category    String   @db.VarChar(50)
+  code        String   @db.VarChar(50)
+  label       String   @db.VarChar(100)
+  color       String?  @db.VarChar(20)
+  sortOrder   Int      @default(0) @map("sort_order")
+  isSystem    Boolean  @default(false) @map("is_system")
+  isActive    Boolean  @default(true) @map("is_active")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([category, code], map: "uk_office_code_lookups")
+  @@index([category, sortOrder], map: "idx_office_code_lookups_category")
+  @@map("code_lookups")
+  @@schema("office")
+}
+
+// office.patents — 지식재산권 대장
+model Patent {
+  id         Int      @id @default(autoincrement())
+  ipTypeCode String   @map("ip_type_code") @db.VarChar(50)
+  name       String   @db.VarChar(255)
+  number     String?  @db.VarChar(100)
+  manager    String?  @db.VarChar(100)
+  note       String?
+  createdBy  Int?     @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@index([ipTypeCode], map: "idx_office_patents_ip_type")
+  @@map("patents")
+  @@schema("office")
+}
+
+// office.assets — 장비 관리 대장
+model Asset {
+  id             Int       @id @default(autoincrement())
+  purchaseDate   DateTime? @map("purchase_date") @db.Date
+  assetNo        String?   @map("asset_no") @db.VarChar(50)
+  name           String    @db.VarChar(255)
+  spec           String?   @db.VarChar(255)
+  quantity       Int       @default(1)
+  price          Decimal?  @db.Decimal(15, 0)
+  vendor         String?   @db.VarChar(255)
+  purpose        String?   @db.VarChar(255)
+  location       String?   @db.VarChar(255)
+  managerPrimary String?   @map("manager_primary") @db.VarChar(100)
+  managerSub     String?   @map("manager_sub") @db.VarChar(100)
+  createdBy      Int?      @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@index([assetNo], map: "idx_office_assets_asset_no")
+  @@map("assets")
+  @@schema("office")
+}
+
+// office.attachments — 첨부(파일은 NAS, DB엔 경로만)
+model Attachment {
+  id           Int      @id @default(autoincrement())
+  entityType   String   @map("entity_type") @db.VarChar(20)
+  entityId     Int      @map("entity_id")
+  docTypeCode  String?  @map("doc_type_code") @db.VarChar(50)
+  originalName String   @map("original_name") @db.VarChar(255)
+  storedPath   String   @map("stored_path") @db.VarChar(500)
+  fileSize     Int?     @map("file_size")
+  mimeType     String?  @map("mime_type") @db.VarChar(100)
+  uploadedBy   Int?     @map("uploaded_by")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entityType, entityId], map: "idx_office_attachments_entity")
+  @@map("attachments")
+  @@schema("office")
+}
