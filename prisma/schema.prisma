@@ -162,6 +162,7 @@ model Department {
 // hr 소유. 읽기만.
 model Position {
   id        Int        @id @default(autoincrement())
+  code      String     @unique @db.VarChar(50)
   name      String     @db.VarChar(100)
   employees Employee[]
 
