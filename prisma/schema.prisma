@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["office", "public"]
+  schemas  = ["office", "hr", "public"]
 }
 
 // public.user — SSO 공유 (office가 만들지 않음, 매핑만)
@@ -96,4 +96,75 @@ model Attachment {
   @@index([entityType, entityId], map: "idx_office_attachments_entity")
   @@map("attachments")
   @@schema("office")
+}
+
+// office.employee_personal_info — 근태에서 이관됨. office가 소유·편집.
+model EmployeePersonalInfo {
+  id                  Int      @id @default(autoincrement())
+  employeeId          Int      @unique @map("employee_id")
+  researcherNumber    String?  @map("researcher_number") @db.VarChar(50)
+  university          String?  @db.VarChar(200)
+  finalDegree         String?  @map("final_degree") @db.VarChar(100)
+  major               String?  @db.VarChar(200)
+  graduationYearmonth String?  @map("graduation_yearmonth") @db.VarChar(20)
+  degreeNumber        String?  @map("degree_number") @db.VarChar(100)
+  residentNumber      String?  @map("resident_number") @db.VarChar(20)
+  address             String?
+  bankName            String?  @map("bank_name") @db.VarChar(100)
+  accountNumber       String?  @map("account_number") @db.VarChar(50)
+  accountHolder       String?  @map("account_holder") @db.VarChar(100)
+  hrName              String?  @map("hr_name") @db.VarChar(100)
+  hrPosition          String?  @map("hr_position") @db.VarChar(100)
+  hrDepartment        String?  @map("hr_department") @db.VarChar(100)
+  hrPhone             String?  @map("hr_phone") @db.VarChar(50)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@map("employee_personal_info")
+  @@schema("office")
+}
+
+// hr 소유. office는 신원 조인용으로 읽기만 (부분 매핑).
+model Employee {
+  id           Int       @id @default(autoincrement())
+  employeeNo   String?   @unique @map("employee_no") @db.VarChar(50)
+  userId       Int?      @unique @map("user_id")
+  name         String    @db.VarChar(100)
+  email        String?   @db.VarChar(255)
+  departmentId Int?      @map("department_id")
+  positionId   Int?      @map("position_id")
+  phone        String?   @db.VarChar(50)
+  hiredAt      DateTime? @map("hired_at") @db.Date
+  isActive     Boolean   @default(true) @map("is_active")
+  isHrOnly     Boolean   @default(false) @map("is_hr_only")
+  hrSortOrder  Int?      @map("hr_sort_order")
+
+  department   Department?           @relation(fields: [departmentId], references: [id])
+  position     Position?             @relation(fields: [positionId], references: [id])
+  personalInfo EmployeePersonalInfo?
+
+  @@map("employees")
+  @@schema("hr")
+}
+
+// hr 소유. 읽기만.
+model Department {
+  id        Int        @id @default(autoincrement())
+  name      String     @db.VarChar(100)
+  employees Employee[]
+
+  @@map("departments")
+  @@schema("hr")
+}
+
+// hr 소유. 읽기만.
+model Position {
+  id        Int        @id @default(autoincrement())
+  name      String     @db.VarChar(100)
+  employees Employee[]
+
+  @@map("positions")
+  @@schema("hr")
 }
