@@ -2,14 +2,27 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import type { Asset, AttachFile } from "@/lib/mockData";
-import { ASSET_DOC_TYPES } from "@/lib/lookups";
+import type { Asset } from "@/lib/types";
+import type { AttachFile } from "@/lib/mockData";
 import AttachmentField from "@/components/AttachmentField";
 
 interface AssetFormModalProps {
   initial?: Asset;
+  docTypes: string[];
   onClose: () => void;
-  onSubmit: (asset: Asset) => void;
+  onSubmit: (p: {
+    purchaseDate: string;
+    assetNo: string;
+    name: string;
+    spec: string;
+    quantity: string;
+    price: string;
+    vendor: string;
+    purpose: string;
+    location: string;
+    managerPrimary: string;
+    managerSub: string;
+  }) => void;
 }
 
 const inputCls =
@@ -18,17 +31,18 @@ const labelCls = "mb-1 block text-xs font-medium text-gray-600";
 
 export default function AssetFormModal({
   initial,
+  docTypes,
   onClose,
   onSubmit,
 }: AssetFormModalProps) {
-  const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate ?? "");
+  const [purchaseDate, setPurchaseDate] = useState(
+    initial?.purchaseDate?.slice(0, 10) ?? ""
+  );
   const [assetNo, setAssetNo] = useState(initial?.assetNo ?? "");
   const [name, setName] = useState(initial?.name ?? "");
   const [spec, setSpec] = useState(initial?.spec ?? "");
-  const [quantity, setQuantity] = useState(
-    initial ? String(initial.quantity) : ""
-  );
-  const [price, setPrice] = useState(initial ? String(initial.price) : "");
+  const [quantity, setQuantity] = useState(String(initial?.quantity ?? ""));
+  const [price, setPrice] = useState(String(initial?.price ?? ""));
   const [vendor, setVendor] = useState(initial?.vendor ?? "");
   const [purpose, setPurpose] = useState(initial?.purpose ?? "");
   const [location, setLocation] = useState(initial?.location ?? "");
@@ -36,26 +50,24 @@ export default function AssetFormModal({
     initial?.managerPrimary ?? ""
   );
   const [managerSub, setManagerSub] = useState(initial?.managerSub ?? "");
-  const [docs, setDocs] = useState<AttachFile[]>(initial?.docs ?? []);
+  // 첨부는 로컬 표시용(저장엔 사용 안 함)
+  const [docs, setDocs] = useState<AttachFile[]>([]);
 
   const submit = () => {
     if (!name.trim()) return;
-    const asset: Asset = {
-      id: initial?.id ?? `A-${Date.now()}`,
+    onSubmit({
       purchaseDate: purchaseDate.trim(),
       assetNo: assetNo.trim(),
       name: name.trim(),
       spec: spec.trim(),
-      quantity: Number(quantity) || 0,
-      price: Number(price) || 0,
+      quantity: quantity.trim(),
+      price: price.trim(),
       vendor: vendor.trim(),
       purpose: purpose.trim(),
       location: location.trim(),
       managerPrimary: managerPrimary.trim(),
-      managerSub: managerSub.trim() || "-",
-      docs,
-    };
-    onSubmit(asset);
+      managerSub: managerSub.trim(),
+    });
     onClose();
   };
 
@@ -169,13 +181,13 @@ export default function AssetFormModal({
           </div>
         </div>
 
-        {/* 첨부 파일 (브라우저 메모리만) */}
+        {/* 첨부 파일 (브라우저 메모리만, 저장엔 미사용) */}
         <div className="mt-4">
           <label className={labelCls}>첨부 파일</label>
           <AttachmentField
             files={docs}
             onChange={setDocs}
-            docTypes={ASSET_DOC_TYPES}
+            docTypes={docTypes}
             editable
           />
         </div>

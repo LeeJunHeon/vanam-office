@@ -2,14 +2,23 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import type { Patent, AttachFile } from "@/lib/mockData";
-import { IP_TYPES, PATENT_DOC_TYPES, type IpType } from "@/lib/lookups";
+import type { Patent } from "@/lib/types";
+import type { LookupItem } from "@/lib/useLookups";
+import type { AttachFile } from "@/lib/mockData";
 import AttachmentField from "@/components/AttachmentField";
 
 interface PatentFormModalProps {
   initial?: Patent;
+  ipTypes: LookupItem[];
+  docTypes: string[];
   onClose: () => void;
-  onSubmit: (patent: Patent) => void;
+  onSubmit: (p: {
+    ipTypeCode: string;
+    name: string;
+    number: string | null;
+    manager: string | null;
+    note: string | null;
+  }) => void;
 }
 
 const inputCls =
@@ -18,28 +27,30 @@ const labelCls = "mb-1 block text-xs font-medium text-gray-600";
 
 export default function PatentFormModal({
   initial,
+  ipTypes,
+  docTypes,
   onClose,
   onSubmit,
 }: PatentFormModalProps) {
-  const [type, setType] = useState<IpType>(initial?.type ?? "출원");
+  const [ipTypeCode, setIpTypeCode] = useState(
+    initial?.ipTypeCode ?? ipTypes[0]?.code ?? ""
+  );
   const [name, setName] = useState(initial?.name ?? "");
   const [number, setNumber] = useState(initial?.number ?? "");
   const [manager, setManager] = useState(initial?.manager ?? "");
   const [note, setNote] = useState(initial?.note ?? "");
-  const [docs, setDocs] = useState<AttachFile[]>(initial?.docs ?? []);
+  // 첨부는 로컬 표시용(저장엔 사용 안 함)
+  const [docs, setDocs] = useState<AttachFile[]>([]);
 
   const submit = () => {
-    if (!name.trim()) return;
-    const patent: Patent = {
-      id: initial?.id ?? `IP-${Date.now()}`,
-      type,
+    if (!name.trim() || !ipTypeCode) return;
+    onSubmit({
+      ipTypeCode,
       name: name.trim(),
-      number: number.trim(),
-      manager: manager.trim(),
-      note: note.trim(),
-      docs,
-    };
-    onSubmit(patent);
+      number: number.trim() || null,
+      manager: manager.trim() || null,
+      note: note.trim() || null,
+    });
     onClose();
   };
 
@@ -63,12 +74,12 @@ export default function PatentFormModal({
             <label className={labelCls}>지식재산권 종류</label>
             <select
               className={inputCls}
-              value={type}
-              onChange={(e) => setType(e.target.value as IpType)}
+              value={ipTypeCode}
+              onChange={(e) => setIpTypeCode(e.target.value)}
             >
-              {IP_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              {ipTypes.map((t) => (
+                <option key={t.code} value={t.code}>
+                  {t.label}
                 </option>
               ))}
             </select>
@@ -108,13 +119,13 @@ export default function PatentFormModal({
           </div>
         </div>
 
-        {/* 첨부 파일 (브라우저 메모리만) */}
+        {/* 첨부 파일 (브라우저 메모리만, 저장엔 미사용) */}
         <div className="mt-4">
           <label className={labelCls}>첨부 파일</label>
           <AttachmentField
             files={docs}
             onChange={setDocs}
-            docTypes={PATENT_DOC_TYPES}
+            docTypes={docTypes}
             editable
           />
         </div>

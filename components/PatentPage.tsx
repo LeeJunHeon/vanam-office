@@ -1,79 +1,133 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, ArrowLeft, FileText, Pencil, Trash2 } from "lucide-react";
-import { patents as mockPatents, type Patent } from "@/lib/mockData";
-import {
-  IP_TYPES,
-  IP_TYPE_BADGE,
-  PATENT_DOC_TYPES,
-  type IpType,
-} from "@/lib/lookups";
+import { useCallback, useEffect, useState } from "react";
+import { Plus, ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import type { Patent } from "@/lib/types";
+import { useLookups } from "@/lib/useLookups";
+import { badgeClass } from "@/lib/lookups";
 import PatentFormModal from "@/components/PatentFormModal";
 import AttachmentField from "@/components/AttachmentField";
 
-function TypeBadge({ type }: { type: IpType }) {
-  return (
-    <span
-      className={`inline-flex rounded-md px-2.5 py-0.5 text-xs font-semibold ${IP_TYPE_BADGE[type]}`}
-    >
-      {type}
-    </span>
-  );
-}
-
-const filters: ("전체" | IpType)[] = ["전체", ...IP_TYPES];
-
 export default function PatentPage() {
-  const [filter, setFilter] = useState<"전체" | IpType>("전체");
+  const [patents, setPatents] = useState<Patent[]>([]);
   const [selected, setSelected] = useState<Patent | null>(null);
-  const [list, setList] = useState<Patent[]>(mockPatents);
+  const [filter, setFilter] = useState<string>("all");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Patent | null>(null);
+  const [editing, setEditing] = useState<Patent | null>(null);
   const [toast, setToast] = useState("");
+
+  const { lookups } = useLookups();
+  const ipTypes = lookups.ip_type ?? [];
+  const patentDocTypes = (lookups.patent_doc_type ?? []).map((l) => l.label);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2500);
   };
 
-  const visible =
-    filter === "전체" ? list : list.filter((p) => p.type === filter);
-
-  const countRegistered = list.filter(
-    (p) => p.type === "등록" || p.type === "등록-기술이전"
-  ).length;
-  const countApplied = list.filter(
-    (p) => p.type === "출원" || p.type === "분할 출원"
-  ).length;
-  const countCertified = list.filter((p) => p.type === "인증").length;
-
-  const handleSubmit = (p: Patent) => {
-    if (editTarget) {
-      setList((prev) => prev.map((x) => (x.id === p.id ? p : x)));
-      setSelected((cur) => (cur && cur.id === p.id ? p : cur));
-      showToast("수정되었습니다.");
-    } else {
-      setList((prev) => [p, ...prev]);
-      showToast("등록되었습니다.");
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/patents");
+      if (!res.ok) return;
+      setPatents(await res.json());
+    } catch {
+      // ignore
     }
-  };
+  }, []);
 
-  const handleDelete = (p: Patent) => {
-    if (!confirm("삭제하시겠습니까?")) return;
-    setList((prev) => prev.filter((x) => x.id !== p.id));
-    setSelected(null);
-    showToast("삭제되었습니다.");
-  };
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const labelOf = (code: string) =>
+    ipTypes.find((t) => t.code === code)?.label ?? code;
+  const colorOf = (code: string) =>
+    ipTypes.find((t) => t.code === code)?.color;
+
+  const TypeBadge = ({ code }: { code: string }) => (
+    <span
+      className={`${badgeClass(
+        colorOf(code)
+      )} inline-flex rounded-md px-2.5 py-0.5 text-xs font-semibold`}
+    >
+      {labelOf(code)}
+    </span>
+  );
+
+  const visible =
+    filter === "all"
+      ? patents
+      : patents.filter((p) => p.ipTypeCode === filter);
+
+  const countRegistered = patents.filter((p) =>
+    ["REGISTERED", "TRANSFERRED"].includes(p.ipTypeCode)
+  ).length;
+  const countApplied = patents.filter((p) =>
+    ["APPLIED", "DIVISIONAL"].includes(p.ipTypeCode)
+  ).length;
+  const countCertified = patents.filter(
+    (p) => p.ipTypeCode === "CERTIFIED"
+  ).length;
 
   const openRegister = () => {
-    setEditTarget(null);
+    setEditing(null);
     setModalOpen(true);
   };
 
   const openEdit = (p: Patent) => {
-    setEditTarget(p);
+    setEditing(p);
     setModalOpen(true);
+  };
+
+  const handleSubmit = async (payload: {
+    ipTypeCode: string;
+    name: string;
+    number: string | null;
+    manager: string | null;
+    note: string | null;
+  }) => {
+    try {
+      const res = editing
+        ? await fetch(`/api/patents/${editing.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/patents", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+      if (!res.ok) {
+        showToast("저장에 실패했습니다.");
+        return;
+      }
+      await load();
+      setModalOpen(false);
+      if (editing) {
+        const updated = await res.json();
+        setSelected((cur) => (cur && cur.id === updated.id ? updated : cur));
+      }
+      showToast(editing ? "수정되었습니다." : "등록되었습니다.");
+    } catch {
+      showToast("저장에 실패했습니다.");
+    }
+  };
+
+  const handleDelete = async (p: Patent) => {
+    if (!confirm("삭제하시겠습니까?")) return;
+    try {
+      const res = await fetch(`/api/patents/${p.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        showToast("삭제에 실패했습니다.");
+        return;
+      }
+      await load();
+      setSelected(null);
+      showToast("삭제되었습니다.");
+    } catch {
+      showToast("삭제에 실패했습니다.");
+    }
   };
 
   return (
@@ -105,7 +159,9 @@ export default function PatentPage() {
 
       {modalOpen && (
         <PatentFormModal
-          initial={editTarget ?? undefined}
+          initial={editing ?? undefined}
+          ipTypes={ipTypes}
+          docTypes={patentDocTypes}
           onClose={() => setModalOpen(false)}
           onSubmit={handleSubmit}
         />
@@ -114,6 +170,8 @@ export default function PatentPage() {
       {selected ? (
         <PatentDetail
           patent={selected}
+          TypeBadge={TypeBadge}
+          labelOf={labelOf}
           onBack={() => setSelected(null)}
           onEdit={() => openEdit(selected)}
           onDelete={() => handleDelete(selected)}
@@ -141,17 +199,17 @@ export default function PatentPage() {
 
           {/* 필터칩 */}
           <div className="flex flex-wrap gap-2">
-            {filters.map((f) => (
+            {[{ code: "all", label: "전체" }, ...ipTypes].map((f) => (
               <button
-                key={f}
-                onClick={() => setFilter(f)}
+                key={f.code}
+                onClick={() => setFilter(f.code)}
                 className={`rounded-lg px-3 py-1 text-xs font-semibold ${
-                  filter === f
+                  filter === f.code
                     ? "bg-blue-100 text-blue-700"
                     : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                 }`}
               >
-                {f}
+                {f.label}
               </button>
             ))}
           </div>
@@ -168,7 +226,6 @@ export default function PatentPage() {
                       "지식재산권명",
                       "등록(출원)번호",
                       "관리자",
-                      "첨부",
                       "비고",
                     ].map((h) => (
                       <th
@@ -191,22 +248,16 @@ export default function PatentPage() {
                         {i + 1}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        <TypeBadge type={p.type} />
+                        <TypeBadge code={p.ipTypeCode} />
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         {p.name}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {p.number}
+                        {p.number || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {p.manager}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        <span className="inline-flex items-center gap-1">
-                          <FileText size={14} />
-                          {p.docs.length}
-                        </span>
+                        {p.manager || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-500">
                         {p.note || "-"}
@@ -225,11 +276,15 @@ export default function PatentPage() {
 
 function PatentDetail({
   patent,
+  TypeBadge,
+  labelOf,
   onBack,
   onEdit,
   onDelete,
 }: {
   patent: Patent;
+  TypeBadge: (props: { code: string }) => React.ReactElement;
+  labelOf: (code: string) => string;
   onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -264,28 +319,26 @@ function PatentDetail({
 
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-bold text-gray-900">{patent.name}</h2>
-        <TypeBadge type={patent.type} />
+        <TypeBadge code={patent.ipTypeCode} />
       </div>
 
       {/* 기본정보 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <Field label="지식재산권 종류" value={patent.type} />
-          <Field label="등록(출원)번호" value={patent.number} />
-          <Field label="관리자" value={patent.manager} />
+          <Field label="지식재산권 종류" value={labelOf(patent.ipTypeCode)} />
+          <Field label="등록(출원)번호" value={patent.number || "-"} />
+          <Field label="관리자" value={patent.manager || "-"} />
           <Field label="비고" value={patent.note || "-"} />
         </div>
       </div>
 
       {/* 첨부 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-        <h3 className="mb-3 text-sm font-semibold text-gray-900">
-          관련 문서 ({patent.docs.length})
-        </h3>
+        <h3 className="mb-3 text-sm font-semibold text-gray-900">관련 문서</h3>
         <AttachmentField
-          files={patent.docs}
+          files={[]}
           onChange={() => {}}
-          docTypes={PATENT_DOC_TYPES}
+          docTypes={[]}
           editable={false}
         />
       </div>

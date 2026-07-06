@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, ArrowLeft, FileText, Pencil, Trash2 } from "lucide-react";
-import { assets as mockAssets, type Asset } from "@/lib/mockData";
-import { assetKind, ASSET_KIND_BADGE, ASSET_DOC_TYPES } from "@/lib/lookups";
+import { useCallback, useEffect, useState } from "react";
+import { Plus, ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import type { Asset } from "@/lib/types";
+import { assetKind, ASSET_KIND_BADGE } from "@/lib/lookups";
+import { useLookups } from "@/lib/useLookups";
 import AssetFormModal from "@/components/AssetFormModal";
 import AttachmentField from "@/components/AttachmentField";
 
-function KindBadge({ assetNo }: { assetNo: string }) {
-  const kind = assetKind(assetNo);
+function KindBadge({ assetNo }: { assetNo: string | null }) {
+  const kind = assetKind(assetNo ?? "");
   return (
     <span
       className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold ${ASSET_KIND_BADGE[kind]}`}
@@ -18,52 +19,119 @@ function KindBadge({ assetNo }: { assetNo: string }) {
   );
 }
 
-const filters = ["전체", "연구용", "일반"] as const;
+function fmtPrice(price: string | null): string {
+  if (price == null || price === "") return "-";
+  return `${Number(price).toLocaleString()}원`;
+}
+
+const filters = ["all", "연구용", "일반"] as const;
+type Filter = (typeof filters)[number];
+const filterLabel: Record<Filter, string> = {
+  all: "전체",
+  연구용: "연구용",
+  일반: "일반",
+};
 
 export default function AssetPage() {
-  const [filter, setFilter] = useState<(typeof filters)[number]>("전체");
-  const [list, setList] = useState<Asset[]>(mockAssets);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Asset | null>(null);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [filter, setFilter] = useState<Filter>("all");
   const [selected, setSelected] = useState<Asset | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Asset | null>(null);
   const [toast, setToast] = useState("");
+
+  const { lookups } = useLookups();
+  const assetDocTypes = (lookups.asset_doc_type ?? []).map((l) => l.label);
 
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2500);
   };
 
-  const visible =
-    filter === "전체"
-      ? list
-      : list.filter((a) => assetKind(a.assetNo) === filter);
-
-  const handleSubmit = (a: Asset) => {
-    if (editTarget) {
-      setList((prev) => prev.map((x) => (x.id === a.id ? a : x)));
-      setSelected((cur) => (cur && cur.id === a.id ? a : cur));
-      showToast("수정되었습니다.");
-    } else {
-      setList((prev) => [a, ...prev]);
-      showToast("등록되었습니다.");
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/assets");
+      if (!res.ok) return;
+      setAssets(await res.json());
+    } catch {
+      // ignore
     }
-  };
+  }, []);
 
-  const handleDelete = (a: Asset) => {
-    if (!confirm("삭제하시겠습니까?")) return;
-    setList((prev) => prev.filter((x) => x.id !== a.id));
-    setSelected(null);
-    showToast("삭제되었습니다.");
-  };
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const visible =
+    filter === "all"
+      ? assets
+      : assets.filter((a) => assetKind(a.assetNo ?? "") === filter);
 
   const openRegister = () => {
-    setEditTarget(null);
+    setEditing(null);
     setModalOpen(true);
   };
 
   const openEdit = (a: Asset) => {
-    setEditTarget(a);
+    setEditing(a);
     setModalOpen(true);
+  };
+
+  const handleSubmit = async (payload: {
+    purchaseDate: string;
+    assetNo: string;
+    name: string;
+    spec: string;
+    quantity: string;
+    price: string;
+    vendor: string;
+    purpose: string;
+    location: string;
+    managerPrimary: string;
+    managerSub: string;
+  }) => {
+    try {
+      const res = editing
+        ? await fetch(`/api/assets/${editing.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/assets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+      if (!res.ok) {
+        showToast("저장에 실패했습니다.");
+        return;
+      }
+      await load();
+      setModalOpen(false);
+      if (editing) {
+        const updated = await res.json();
+        setSelected((cur) => (cur && cur.id === updated.id ? updated : cur));
+      }
+      showToast(editing ? "수정되었습니다." : "등록되었습니다.");
+    } catch {
+      showToast("저장에 실패했습니다.");
+    }
+  };
+
+  const handleDelete = async (a: Asset) => {
+    if (!confirm("삭제하시겠습니까?")) return;
+    try {
+      const res = await fetch(`/api/assets/${a.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        showToast("삭제에 실패했습니다.");
+        return;
+      }
+      await load();
+      setSelected(null);
+      showToast("삭제되었습니다.");
+    } catch {
+      showToast("삭제에 실패했습니다.");
+    }
   };
 
   return (
@@ -95,7 +163,8 @@ export default function AssetPage() {
 
       {modalOpen && (
         <AssetFormModal
-          initial={editTarget ?? undefined}
+          initial={editing ?? undefined}
+          docTypes={assetDocTypes}
           onClose={() => setModalOpen(false)}
           onSubmit={handleSubmit}
         />
@@ -122,7 +191,7 @@ export default function AssetPage() {
                     : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                 }`}
               >
-                {f}
+                {filterLabel[f]}
               </button>
             ))}
           </div>
@@ -163,10 +232,10 @@ export default function AssetPage() {
                       className="cursor-pointer hover:bg-gray-50"
                     >
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {a.purchaseDate}
+                        {a.purchaseDate?.slice(0, 10) || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        <div className="font-medium">{a.assetNo}</div>
+                        <div className="font-medium">{a.assetNo || "-"}</div>
                         <div className="mt-1">
                           <KindBadge assetNo={a.assetNo} />
                         </div>
@@ -175,28 +244,28 @@ export default function AssetPage() {
                         {a.name}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {a.spec}
+                        {a.spec || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {a.quantity}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {a.price.toLocaleString()}원
+                        {fmtPrice(a.price)}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {a.vendor}
+                        {a.vendor || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {a.purpose}
+                        {a.purpose || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {a.location}
+                        {a.location || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {a.managerPrimary}
+                        {a.managerPrimary || "-"}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {a.managerSub}
+                        {a.managerSub || "-"}
                       </td>
                     </tr>
                   ))}
@@ -257,28 +326,26 @@ function AssetDetail({
       {/* 기본정보 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <Field label="구입일자" value={asset.purchaseDate} />
-          <Field label="장비번호" value={asset.assetNo} />
-          <Field label="규격" value={asset.spec} />
+          <Field label="구입일자" value={asset.purchaseDate?.slice(0, 10) || "-"} />
+          <Field label="장비번호" value={asset.assetNo || "-"} />
+          <Field label="규격" value={asset.spec || "-"} />
           <Field label="수량" value={String(asset.quantity)} />
-          <Field label="구입금액" value={`${asset.price.toLocaleString()}원`} />
-          <Field label="구입처" value={asset.vendor} />
-          <Field label="용도" value={asset.purpose} />
-          <Field label="설치장소" value={asset.location} />
-          <Field label="관리자_정" value={asset.managerPrimary} />
-          <Field label="관리자_부" value={asset.managerSub} />
+          <Field label="구입금액" value={fmtPrice(asset.price)} />
+          <Field label="구입처" value={asset.vendor || "-"} />
+          <Field label="용도" value={asset.purpose || "-"} />
+          <Field label="설치장소" value={asset.location || "-"} />
+          <Field label="관리자_정" value={asset.managerPrimary || "-"} />
+          <Field label="관리자_부" value={asset.managerSub || "-"} />
         </div>
       </div>
 
       {/* 첨부 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-        <h3 className="mb-3 text-sm font-semibold text-gray-900">
-          관련 서류 ({asset.docs.length})
-        </h3>
+        <h3 className="mb-3 text-sm font-semibold text-gray-900">관련 서류</h3>
         <AttachmentField
-          files={asset.docs}
+          files={[]}
           onChange={() => {}}
-          docTypes={ASSET_DOC_TYPES}
+          docTypes={[]}
           editable={false}
         />
       </div>

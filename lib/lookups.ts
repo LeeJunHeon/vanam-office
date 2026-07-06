@@ -1,37 +1,22 @@
 // 룩업/코드 상수 모음
-// TODO: 추후 DB 룩업 테이블로 이전
+// 지재권 종류·서류 종류는 DB(office.code_lookups)에서 온다 → /api/lookups + useLookups.
 
-export const IP_TYPES = [
-  "등록",
-  "등록-기술이전",
-  "출원",
-  "거절",
-  "분할 출원",
-  "인증",
-] as const;
-export type IpType = (typeof IP_TYPES)[number];
-
-export const IP_TYPE_BADGE: Record<IpType, string> = {
-  등록: "bg-emerald-50 text-emerald-700",
-  "등록-기술이전": "bg-teal-50 text-teal-700",
-  출원: "bg-blue-50 text-blue-700",
-  거절: "bg-rose-50 text-rose-700",
-  "분할 출원": "bg-amber-50 text-amber-700",
-  인증: "bg-violet-50 text-violet-700",
+// 룩업 color → 뱃지 클래스
+export const COLOR_BADGE: Record<string, string> = {
+  emerald: "bg-emerald-50 text-emerald-700",
+  teal: "bg-teal-50 text-teal-700",
+  blue: "bg-blue-50 text-blue-700",
+  rose: "bg-rose-50 text-rose-700",
+  amber: "bg-amber-50 text-amber-700",
+  violet: "bg-violet-50 text-violet-700",
+  gray: "bg-gray-100 text-gray-600",
 };
 
-export const PATENT_DOC_TYPES = ["출원사실 증명서", "등록증", "인증서"];
+export function badgeClass(color?: string | null) {
+  return (color && COLOR_BADGE[color]) || COLOR_BADGE.gray;
+}
 
-export const ASSET_DOC_TYPES = [
-  "계약서",
-  "거래명세서",
-  "전자세금계산서",
-  "입금내역확인증",
-  "카드매출전표",
-  "증빙사진",
-];
-
-// 장비번호 접두사 → 구분
+// 장비번호 접두사 → 구분 (S=연구용, R=일반)
 export const ASSET_PREFIX: Record<string, string> = { S: "연구용", R: "일반" };
 
 export function assetKind(assetNo: string): "연구용" | "일반" | "기타" {
