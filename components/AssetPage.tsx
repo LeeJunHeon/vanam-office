@@ -80,7 +80,7 @@ export default function AssetPage() {
 
   const handleSubmit = async (payload: {
     purchaseDate: string;
-    assetNo: string;
+    kind: string;
     name: string;
     spec: string;
     quantity: string;

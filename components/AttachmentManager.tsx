@@ -18,6 +18,9 @@ interface AttachmentManagerProps {
   docTypes: { code: string; label: string }[];
 }
 
+// 선택(옵션)인 서류 코드 — 계약서만 선택
+const OPTIONAL_CODES = new Set(["CONTRACT"]);
+
 function formatSize(size: number | null): string {
   if (!size) return "";
   return `${Math.max(1, Math.round(size / 1024)).toLocaleString()} KB`;
@@ -29,11 +32,6 @@ export default function AttachmentManager({
   docTypes,
 }: AttachmentManagerProps) {
   const [items, setItems] = useState<Att[]>([]);
-  const [dragOver, setDragOver] = useState(false);
-  const [selectedCode, setSelectedCode] = useState(docTypes[0]?.code ?? "");
-
-  const labelOf = (code: string | null) =>
-    (code && docTypes.find((d) => d.code === code)?.label) || code || "";
 
   const load = useCallback(async () => {
     try {
@@ -51,16 +49,15 @@ export default function AttachmentManager({
     load();
   }, [load]);
 
-  const upload = async (files: FileList | null) => {
+  const upload = async (files: FileList | null, code: string) => {
     if (!files || files.length === 0) return;
     try {
       for (const file of Array.from(files)) {
         const form = new FormData();
         form.append("entityType", entityType);
         form.append("entityId", String(entityId));
-        form.append("docTypeCode", selectedCode);
+        form.append("docTypeCode", code);
         form.append("file", file);
-        // Content-Type 헤더는 브라우저가 boundary와 함께 자동 지정하므로 수동 지정 X
         await fetch(api("/api/attachments"), { method: "POST", body: form });
       }
       await load();
@@ -72,8 +69,7 @@ export default function AttachmentManager({
   const remove = async (id: number) => {
     if (!confirm("삭제하시겠습니까?")) return;
     try {
-      const res = await fetch(api(`/api/attachments/${id}`), { method: "DELETE" });
-      if (!res.ok) return;
+      await fetch(api(`/api/attachments/${id}`), { method: "DELETE" });
       await load();
     } catch {
       // ignore
@@ -82,107 +78,95 @@ export default function AttachmentManager({
 
   return (
     <div className="space-y-3">
-      {/* 상단: 종류 select + 드롭존 */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <select
-          value={selectedCode}
-          onChange={(e) => setSelectedCode(e.target.value)}
-          className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:ring-2 focus:ring-blue-200"
-        >
-          {docTypes.map((d) => (
-            <option key={d.code} value={d.code}>
-              {d.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <label
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          upload(e.dataTransfer.files);
-        }}
-        className={`flex cursor-pointer flex-col items-center gap-1 rounded-xl border-2 border-dashed p-4 text-center text-sm ${
-          dragOver
-            ? "border-blue-400 bg-blue-50 text-blue-600"
-            : "border-gray-200 text-gray-500"
-        }`}
-      >
-        <Upload size={18} className="text-gray-400" />
-        <span>여기로 파일을 끌어다 놓거나 클릭해서 선택하세요</span>
-        <span className="inline-flex items-center rounded-lg bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-          파일 선택
-        </span>
-        <input
-          type="file"
-          multiple
-          accept="image/*,application/pdf"
-          className="hidden"
-          onChange={(e) => {
-            upload(e.target.files);
-            e.target.value = "";
-          }}
-        />
-      </label>
-
-      {/* 목록 */}
-      {items.length === 0 ? (
-        <p className="text-xs text-gray-400">첨부된 파일이 없습니다.</p>
-      ) : (
-        <div className="space-y-2">
-          {items.map((it) => (
-            <div
-              key={it.id}
-              className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2"
-            >
-              {it.mimeType?.startsWith("image/") ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={api(`/api/attachments/${it.id}/file`)}
-                  alt={it.originalName}
-                  className="h-9 w-9 shrink-0 rounded object-cover"
+      {docTypes.map((dt) => {
+        const files = items.filter((it) => it.docTypeCode === dt.code);
+        const optional = OPTIONAL_CODES.has(dt.code);
+        return (
+          <div key={dt.code} className="rounded-xl border border-gray-100 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-700">
+                {dt.label}
+                {optional && (
+                  <span className="ml-1 text-xs font-normal text-gray-400">
+                    (선택)
+                  </span>
+                )}
+              </p>
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
+                <Upload size={13} />
+                파일 추가
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    upload(e.target.files, dt.code);
+                    e.target.value = "";
+                  }}
                 />
-              ) : (
-                <FileText size={18} className="shrink-0 text-gray-400" />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-gray-900">
-                  {it.originalName}
-                </p>
-                <p className="text-[11px] text-gray-400">
-                  {formatSize(it.fileSize)}
-                </p>
-              </div>
-              {it.docTypeCode && (
-                <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-gray-600">
-                  {labelOf(it.docTypeCode)}
-                </span>
-              )}
-              <a
-                href={api(`/api/attachments/${it.id}/file?download=1`)}
-                className="text-gray-400 hover:text-blue-600"
-                title="다운로드"
-              >
-                <Download size={16} />
-              </a>
-              <button
-                type="button"
-                onClick={() => remove(it.id)}
-                className="text-gray-400 hover:text-rose-600"
-                title="삭제"
-              >
-                <X size={16} />
-              </button>
+              </label>
             </div>
-          ))}
-        </div>
-      )}
+
+            {files.length === 0 ? (
+              <p className="text-xs text-gray-300">첨부된 파일 없음</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {files.map((f) => {
+                  const isImage = (f.mimeType ?? "").startsWith("image/");
+                  return (
+                    <li
+                      key={f.id}
+                      className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2.5 py-1.5"
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        {isImage ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={api(`/api/attachments/${f.id}/file`)}
+                            alt=""
+                            className="h-8 w-8 shrink-0 rounded object-cover"
+                          />
+                        ) : (
+                          <FileText
+                            size={16}
+                            className="shrink-0 text-gray-400"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-xs text-gray-700">
+                            {f.originalName}
+                          </p>
+                          {f.fileSize != null && (
+                            <p className="text-[10px] text-gray-400">
+                              {formatSize(f.fileSize)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <a
+                          href={api(`/api/attachments/${f.id}/file?download=1`)}
+                          className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700"
+                          title="다운로드"
+                        >
+                          <Download size={14} />
+                        </a>
+                        <button
+                          onClick={() => remove(f.id)}
+                          className="rounded p-1 text-gray-400 hover:bg-rose-100 hover:text-rose-600"
+                          title="삭제"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

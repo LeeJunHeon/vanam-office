@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import type { Asset } from "@/lib/types";
+import { assetKind } from "@/lib/lookups";
 
 interface AssetFormModalProps {
   initial?: Asset;
   onClose: () => void;
   onSubmit: (p: {
     purchaseDate: string;
-    assetNo: string;
+    kind: string;
     name: string;
     spec: string;
     quantity: string;
@@ -34,7 +35,13 @@ export default function AssetFormModal({
   const [purchaseDate, setPurchaseDate] = useState(
     initial?.purchaseDate?.slice(0, 10) ?? ""
   );
-  const [assetNo, setAssetNo] = useState(initial?.assetNo ?? "");
+  const [kind, setKind] = useState<"일반" | "연구용">(
+    initial
+      ? assetKind(initial.assetNo ?? "") === "연구용"
+        ? "연구용"
+        : "일반"
+      : "일반"
+  );
   const [name, setName] = useState(initial?.name ?? "");
   const [spec, setSpec] = useState(initial?.spec ?? "");
   const [quantity, setQuantity] = useState(String(initial?.quantity ?? ""));
@@ -51,7 +58,7 @@ export default function AssetFormModal({
     if (!name.trim()) return;
     onSubmit({
       purchaseDate: purchaseDate.trim(),
-      assetNo: assetNo.trim(),
+      kind,
       name: name.trim(),
       spec: spec.trim(),
       quantity: quantity.trim(),
@@ -90,15 +97,31 @@ export default function AssetFormModal({
               onChange={(e) => setPurchaseDate(e.target.value)}
             />
           </div>
-          <div>
-            <label className={labelCls}>장비번호</label>
-            <input
-              className={inputCls}
-              placeholder="예: S-001 (S=연구용, R=일반)"
-              value={assetNo}
-              onChange={(e) => setAssetNo(e.target.value)}
-            />
-          </div>
+          {initial ? (
+            <div>
+              <label className={labelCls}>장비번호</label>
+              <input
+                className={`${inputCls} bg-gray-50 text-gray-500`}
+                value={initial?.assetNo ?? ""}
+                readOnly
+              />
+            </div>
+          ) : (
+            <div>
+              <label className={labelCls}>종류 *</label>
+              <select
+                className={inputCls}
+                value={kind}
+                onChange={(e) => setKind(e.target.value as "일반" | "연구용")}
+              >
+                <option value="일반">일반 (R)</option>
+                <option value="연구용">연구용 (S)</option>
+              </select>
+              <p className="mt-1 text-[11px] text-gray-400">
+                저장 시 R/S 번호가 자동 부여됩니다.
+              </p>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <label className={labelCls}>장비명 *</label>
             <input
