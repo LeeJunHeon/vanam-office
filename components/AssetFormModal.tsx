@@ -1,26 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import type { Asset } from "@/lib/types";
 import { assetKind } from "@/lib/lookups";
+import { api } from "@/lib/api";
+import {
+  AttachmentPicker,
+  type PendingFiles,
+} from "@/components/AttachmentManager";
 
 interface AssetFormModalProps {
   initial?: Asset;
+  docTypes: { code: string; label: string }[];
   onClose: () => void;
-  onSubmit: (p: {
-    purchaseDate: string;
-    kind: string;
-    name: string;
-    spec: string;
-    quantity: string;
-    price: string;
-    vendor: string;
-    purpose: string;
-    location: string;
-    managerPrimary: string;
-    managerSub: string;
-  }) => void;
+  onSubmit: (
+    p: {
+      purchaseDate: string;
+      kind: string;
+      name: string;
+      spec: string;
+      quantity: string;
+      price: string;
+      vendor: string;
+      purpose: string;
+      location: string;
+      managerPrimary: string;
+      managerSub: string;
+    },
+    pending: PendingFiles,
+  ) => void | Promise<void>;
 }
 
 const inputCls =
@@ -29,6 +38,7 @@ const labelCls = "mb-1 block text-xs font-medium text-gray-600";
 
 export default function AssetFormModal({
   initial,
+  docTypes,
   onClose,
   onSubmit,
 }: AssetFormModalProps) {
@@ -48,27 +58,56 @@ export default function AssetFormModal({
   const [price, setPrice] = useState(String(initial?.price ?? ""));
   const [vendor, setVendor] = useState(initial?.vendor ?? "");
   const [purpose, setPurpose] = useState(initial?.purpose ?? "");
-  const [location, setLocation] = useState(initial?.location ?? "");
-  const [managerPrimary, setManagerPrimary] = useState(
-    initial?.managerPrimary ?? ""
+  const [location, setLocation] = useState(
+    initial?.location ?? "영등포구 도신로4길 21-1"
   );
-  const [managerSub, setManagerSub] = useState(initial?.managerSub ?? "");
+  const [managerPrimary, setManagerPrimary] = useState(
+    initial?.managerPrimary ?? "한수덕"
+  );
+  const [managerSub, setManagerSub] = useState(initial?.managerSub ?? "이동학");
+  const [pending, setPending] = useState<PendingFiles>({});
+
+  // 종류 선택 시 부여될 장비번호 미리보기 (신규만)
+  const [previewNo, setPreviewNo] = useState("");
+  useEffect(() => {
+    if (initial) return; // 수정 모드는 미리보기 없음
+    fetch(api(`/api/assets/next-no?kind=${encodeURIComponent(kind)}`))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setPreviewNo(d?.assetNo ?? ""))
+      .catch(() => setPreviewNo(""));
+  }, [kind, initial]);
+
+  const allFilled = [
+    purchaseDate,
+    name,
+    spec,
+    String(quantity),
+    String(price),
+    vendor,
+    purpose,
+    location,
+    managerPrimary,
+    managerSub,
+  ].every((v) => v.trim() !== "");
 
   const submit = () => {
-    if (!name.trim()) return;
-    onSubmit({
-      purchaseDate: purchaseDate.trim(),
-      kind,
-      name: name.trim(),
-      spec: spec.trim(),
-      quantity: quantity.trim(),
-      price: price.trim(),
-      vendor: vendor.trim(),
-      purpose: purpose.trim(),
-      location: location.trim(),
-      managerPrimary: managerPrimary.trim(),
-      managerSub: managerSub.trim(),
-    });
+    if (!allFilled) return;
+    onSubmit(
+      {
+        purchaseDate: purchaseDate.trim(),
+        kind,
+        name: name.trim(),
+        spec: spec.trim(),
+        quantity: quantity.trim(),
+        price: price.trim(),
+        vendor: vendor.trim(),
+        purpose: purpose.trim(),
+        location: location.trim(),
+        managerPrimary: managerPrimary.trim(),
+        managerSub: managerSub.trim(),
+      },
+      initial ? {} : pending,
+    );
     onClose();
   };
 
@@ -89,10 +128,10 @@ export default function AssetFormModal({
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelCls}>구입일자</label>
+            <label className={labelCls}>구입일자 *</label>
             <input
+              type="date"
               className={inputCls}
-              placeholder="예: 2026-06-20"
               value={purchaseDate}
               onChange={(e) => setPurchaseDate(e.target.value)}
             />
@@ -117,9 +156,11 @@ export default function AssetFormModal({
                 <option value="일반">일반 (R)</option>
                 <option value="연구용">연구용 (S)</option>
               </select>
-              <p className="mt-1 text-[11px] text-gray-400">
-                저장 시 R/S 번호가 자동 부여됩니다.
-              </p>
+              {previewNo && (
+                <p className="mt-1 text-[11px] text-gray-400">
+                  부여될 장비번호: {previewNo}
+                </p>
+              )}
             </div>
           )}
           <div className="sm:col-span-2">
@@ -131,7 +172,7 @@ export default function AssetFormModal({
             />
           </div>
           <div>
-            <label className={labelCls}>규격</label>
+            <label className={labelCls}>규격 *</label>
             <input
               className={inputCls}
               value={spec}
@@ -139,7 +180,7 @@ export default function AssetFormModal({
             />
           </div>
           <div>
-            <label className={labelCls}>수량</label>
+            <label className={labelCls}>수량 *</label>
             <input
               type="number"
               className={inputCls}
@@ -148,7 +189,7 @@ export default function AssetFormModal({
             />
           </div>
           <div>
-            <label className={labelCls}>구입금액(원)</label>
+            <label className={labelCls}>구입금액(원) *</label>
             <input
               type="number"
               className={inputCls}
@@ -157,7 +198,7 @@ export default function AssetFormModal({
             />
           </div>
           <div>
-            <label className={labelCls}>구입처</label>
+            <label className={labelCls}>구입처 *</label>
             <input
               className={inputCls}
               value={vendor}
@@ -165,7 +206,7 @@ export default function AssetFormModal({
             />
           </div>
           <div>
-            <label className={labelCls}>용도</label>
+            <label className={labelCls}>용도 *</label>
             <input
               className={inputCls}
               value={purpose}
@@ -173,7 +214,7 @@ export default function AssetFormModal({
             />
           </div>
           <div>
-            <label className={labelCls}>설치장소</label>
+            <label className={labelCls}>설치장소 *</label>
             <input
               className={inputCls}
               value={location}
@@ -181,7 +222,7 @@ export default function AssetFormModal({
             />
           </div>
           <div>
-            <label className={labelCls}>관리자_정</label>
+            <label className={labelCls}>관리자_정 *</label>
             <input
               className={inputCls}
               value={managerPrimary}
@@ -189,13 +230,24 @@ export default function AssetFormModal({
             />
           </div>
           <div>
-            <label className={labelCls}>관리자_부</label>
+            <label className={labelCls}>관리자_부 *</label>
             <input
               className={inputCls}
               value={managerSub}
               onChange={(e) => setManagerSub(e.target.value)}
             />
           </div>
+
+          {!initial && (
+            <div className="sm:col-span-2">
+              <label className={labelCls}>첨부 서류</label>
+              <AttachmentPicker
+                docTypes={docTypes}
+                value={pending}
+                onChange={setPending}
+              />
+            </div>
+          )}
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
@@ -207,7 +259,8 @@ export default function AssetFormModal({
           </button>
           <button
             onClick={submit}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600"
+            disabled={!allFilled}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600 disabled:opacity-50"
           >
             {initial ? "수정" : "등록"}
           </button>

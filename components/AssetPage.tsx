@@ -7,7 +7,10 @@ import { api } from "@/lib/api";
 import { assetKind, ASSET_KIND_BADGE } from "@/lib/lookups";
 import { useLookups } from "@/lib/useLookups";
 import AssetFormModal from "@/components/AssetFormModal";
-import AttachmentManager from "@/components/AttachmentManager";
+import AttachmentManager, {
+  uploadPending,
+  type PendingFiles,
+} from "@/components/AttachmentManager";
 
 function KindBadge({ assetNo }: { assetNo: string | null }) {
   const kind = assetKind(assetNo ?? "");
@@ -78,42 +81,65 @@ export default function AssetPage() {
     setModalOpen(true);
   };
 
-  const handleSubmit = async (payload: {
-    purchaseDate: string;
-    kind: string;
-    name: string;
-    spec: string;
-    quantity: string;
-    price: string;
-    vendor: string;
-    purpose: string;
-    location: string;
-    managerPrimary: string;
-    managerSub: string;
-  }) => {
+  const handleSubmit = async (
+    payload: {
+      purchaseDate: string;
+      kind: string;
+      name: string;
+      spec: string;
+      quantity: string;
+      price: string;
+      vendor: string;
+      purpose: string;
+      location: string;
+      managerPrimary: string;
+      managerSub: string;
+    },
+    pending: PendingFiles,
+  ) => {
     try {
-      const res = editing
-        ? await fetch(api(`/api/assets/${editing.id}`), {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          })
-        : await fetch(api("/api/assets"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
+      if (editing) {
+        // 수정: PATCH만 (첨부는 상세에서)
+        const res = await fetch(api(`/api/assets/${editing.id}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          showToast("저장에 실패했습니다.");
+          return;
+        }
+        const updated = await res.json();
+        await load();
+        setModalOpen(false);
+        setSelected((cur) => (cur && cur.id === updated.id ? updated : cur));
+        showToast("수정되었습니다.");
+        return;
+      }
+
+      // 신규(A방식): 장비 생성 후 그 id로 첨부 일괄 업로드
+      const res = await fetch(api("/api/assets"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
       if (!res.ok) {
         showToast("저장에 실패했습니다.");
         return;
       }
+      const created = await res.json();
+      if (pending && Object.keys(pending).length) {
+        try {
+          await uploadPending("asset", created.id, pending);
+        } catch {
+          showToast(
+            "장비는 등록됐지만 일부 첨부 업로드에 실패했습니다. 상세에서 다시 시도하세요.",
+          );
+        }
+      }
       await load();
       setModalOpen(false);
-      if (editing) {
-        const updated = await res.json();
-        setSelected((cur) => (cur && cur.id === updated.id ? updated : cur));
-      }
-      showToast(editing ? "수정되었습니다." : "등록되었습니다.");
+      showToast("등록되었습니다.");
     } catch {
       showToast("저장에 실패했습니다.");
     }
@@ -165,6 +191,7 @@ export default function AssetPage() {
       {modalOpen && (
         <AssetFormModal
           initial={editing ?? undefined}
+          docTypes={assetDocTypes}
           onClose={() => setModalOpen(false)}
           onSubmit={handleSubmit}
         />
