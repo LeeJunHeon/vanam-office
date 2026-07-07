@@ -3,20 +3,22 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
+import DashboardPage from "@/components/DashboardPage";
 import PatentPage from "@/components/PatentPage";
 import AssetPage from "@/components/AssetPage";
 import PersonalInfoPage from "@/components/PersonalInfoPage";
 
-type Page = "patent" | "asset" | "hr";
+type Page = "dashboard" | "patent" | "asset" | "hr";
 
 const pageTitle: Record<Page, string> = {
-  patent: "특허관리",
-  asset: "비품·자산 관리",
-  hr: "인사관리",
+  dashboard: "대시보드",
+  patent: "지식재산권",
+  asset: "장비관리대장",
+  hr: "인사정보카드",
 };
 
 export default function AppShell() {
-  const [page, setPage] = useState<Page>("patent");
+  const [page, setPage] = useState<Page>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -43,6 +45,7 @@ export default function AppShell() {
           </span>
         </div>
 
+        {page === "dashboard" && <DashboardPage />}
         {page === "patent" && <PatentPage />}
         {page === "asset" && <AssetPage />}
         {page === "hr" && <PersonalInfoPage />}

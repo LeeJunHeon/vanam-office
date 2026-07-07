@@ -1,8 +1,15 @@
 "use client";
 
-import { Award, Package, IdCard, Briefcase, LogOut } from "lucide-react";
+import {
+  LayoutDashboard,
+  Award,
+  Package,
+  IdCard,
+  Briefcase,
+  LogOut,
+} from "lucide-react";
 
-type Page = "patent" | "asset" | "hr";
+type Page = "dashboard" | "patent" | "asset" | "hr";
 
 interface SidebarProps {
   currentPage: Page;
@@ -11,14 +18,11 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const navItems: {
-  key: Page;
-  label: string;
-  icon: typeof Award;
-}[] = [
-  { key: "patent", label: "특허관리", icon: Award },
-  { key: "asset", label: "비품·자산 관리", icon: Package },
-  { key: "hr", label: "인사관리", icon: IdCard },
+const navItems: { key: Page; label: string; icon: typeof Award }[] = [
+  { key: "dashboard", label: "대시보드", icon: LayoutDashboard },
+  { key: "patent", label: "지식재산권", icon: Award },
+  { key: "asset", label: "장비관리대장", icon: Package },
+  { key: "hr", label: "인사정보카드", icon: IdCard },
 ];
 
 export default function Sidebar({
