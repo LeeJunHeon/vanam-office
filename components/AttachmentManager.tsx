@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FileText, Upload, Download, X } from "lucide-react";
-
-// fetch·에셋과 달리 원시 <img>·<a>에는 Next가 basePath를 자동으로 붙이지 않으므로 수동 적용
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || "";
+import { api } from "@/lib/api";
 
 type Att = {
   id: number;
@@ -40,7 +38,7 @@ export default function AttachmentManager({
   const load = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/attachments?entityType=${entityType}&entityId=${entityId}`,
+        api(`/api/attachments?entityType=${entityType}&entityId=${entityId}`),
       );
       if (!res.ok) return;
       setItems(await res.json());
@@ -63,7 +61,7 @@ export default function AttachmentManager({
         form.append("docTypeCode", selectedCode);
         form.append("file", file);
         // Content-Type 헤더는 브라우저가 boundary와 함께 자동 지정하므로 수동 지정 X
-        await fetch("/api/attachments", { method: "POST", body: form });
+        await fetch(api("/api/attachments"), { method: "POST", body: form });
       }
       await load();
     } catch {
@@ -74,7 +72,7 @@ export default function AttachmentManager({
   const remove = async (id: number) => {
     if (!confirm("삭제하시겠습니까?")) return;
     try {
-      const res = await fetch(`/api/attachments/${id}`, { method: "DELETE" });
+      const res = await fetch(api(`/api/attachments/${id}`), { method: "DELETE" });
       if (!res.ok) return;
       await load();
     } catch {
@@ -146,7 +144,7 @@ export default function AttachmentManager({
               {it.mimeType?.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`${BASE_PATH}/api/attachments/${it.id}/file`}
+                  src={api(`/api/attachments/${it.id}/file`)}
                   alt={it.originalName}
                   className="h-9 w-9 shrink-0 rounded object-cover"
                 />
@@ -167,7 +165,7 @@ export default function AttachmentManager({
                 </span>
               )}
               <a
-                href={`${BASE_PATH}/api/attachments/${it.id}/file?download=1`}
+                href={api(`/api/attachments/${it.id}/file?download=1`)}
                 className="text-gray-400 hover:text-blue-600"
                 title="다운로드"
               >

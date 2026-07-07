@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import type { Patent } from "@/lib/types";
+import { api } from "@/lib/api";
 import { useLookups } from "@/lib/useLookups";
 import { badgeClass } from "@/lib/lookups";
 import PatentFormModal from "@/components/PatentFormModal";
@@ -27,7 +28,7 @@ export default function PatentPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/patents");
+      const res = await fetch(api("/api/patents"));
       if (!res.ok) return;
       setPatents(await res.json());
     } catch {
@@ -88,12 +89,12 @@ export default function PatentPage() {
   }) => {
     try {
       const res = editing
-        ? await fetch(`/api/patents/${editing.id}`, {
+        ? await fetch(api(`/api/patents/${editing.id}`), {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           })
-        : await fetch("/api/patents", {
+        : await fetch(api("/api/patents"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -117,7 +118,7 @@ export default function PatentPage() {
   const handleDelete = async (p: Patent) => {
     if (!confirm("삭제하시겠습니까?")) return;
     try {
-      const res = await fetch(`/api/patents/${p.id}`, { method: "DELETE" });
+      const res = await fetch(api(`/api/patents/${p.id}`), { method: "DELETE" });
       if (!res.ok) {
         showToast("삭제에 실패했습니다.");
         return;

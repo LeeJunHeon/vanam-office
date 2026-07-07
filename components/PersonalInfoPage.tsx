@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { IdCard, Search, Eye, EyeOff, Save, Trash2, Plus } from "lucide-react";
 import type { PersonalListItem, PersonalDetail } from "@/lib/types";
+import { api } from "@/lib/api";
 
 // office가 편집 가능한 인사정보 필드
 type FormKey =
@@ -93,7 +94,7 @@ export default function PersonalInfoPage() {
 
   const loadList = useCallback(async () => {
     try {
-      const res = await fetch("/api/personal-info");
+      const res = await fetch(api("/api/personal-info"));
       if (!res.ok) return;
       setList(await res.json());
     } catch {
@@ -103,7 +104,7 @@ export default function PersonalInfoPage() {
 
   const loadDetail = useCallback(async (id: number) => {
     try {
-      const res = await fetch(`/api/personal-info/${id}`);
+      const res = await fetch(api(`/api/personal-info/${id}`));
       if (!res.ok) return;
       setDetail(await res.json());
       setEditing(false);
@@ -197,7 +198,7 @@ export default function PersonalInfoPage() {
     if (selectedId === null) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/personal-info/${selectedId}`, {
+      const res = await fetch(api(`/api/personal-info/${selectedId}`), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -224,7 +225,7 @@ export default function PersonalInfoPage() {
     if (selectedId === null) return;
     if (!confirm("인사정보를 비우시겠습니까? (직원은 삭제되지 않습니다)")) return;
     try {
-      const res = await fetch(`/api/personal-info/${selectedId}`, {
+      const res = await fetch(api(`/api/personal-info/${selectedId}`), {
         method: "DELETE",
       });
       if (!res.ok) {
@@ -244,7 +245,7 @@ export default function PersonalInfoPage() {
     if (!name) return;
     setAdding(true);
     try {
-      const res = await fetch("/api/personal-info/persons", {
+      const res = await fetch(api("/api/personal-info/persons"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
@@ -273,7 +274,7 @@ export default function PersonalInfoPage() {
     )
       return;
     try {
-      const res = await fetch(`/api/personal-info/persons/${selectedId}`, {
+      const res = await fetch(api(`/api/personal-info/persons/${selectedId}`), {
         method: "DELETE",
       });
       if (!res.ok) {

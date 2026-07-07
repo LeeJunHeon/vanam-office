@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import type { Asset } from "@/lib/types";
+import { api } from "@/lib/api";
 import { assetKind, ASSET_KIND_BADGE } from "@/lib/lookups";
 import { useLookups } from "@/lib/useLookups";
 import AssetFormModal from "@/components/AssetFormModal";
@@ -50,7 +51,7 @@ export default function AssetPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/assets");
+      const res = await fetch(api("/api/assets"));
       if (!res.ok) return;
       setAssets(await res.json());
     } catch {
@@ -92,12 +93,12 @@ export default function AssetPage() {
   }) => {
     try {
       const res = editing
-        ? await fetch(`/api/assets/${editing.id}`, {
+        ? await fetch(api(`/api/assets/${editing.id}`), {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
           })
-        : await fetch("/api/assets", {
+        : await fetch(api("/api/assets"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
@@ -121,7 +122,7 @@ export default function AssetPage() {
   const handleDelete = async (a: Asset) => {
     if (!confirm("삭제하시겠습니까?")) return;
     try {
-      const res = await fetch(`/api/assets/${a.id}`, { method: "DELETE" });
+      const res = await fetch(api(`/api/assets/${a.id}`), { method: "DELETE" });
       if (!res.ok) {
         showToast("삭제에 실패했습니다.");
         return;
