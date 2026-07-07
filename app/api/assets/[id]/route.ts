@@ -22,7 +22,7 @@ export async function PATCH(
         ...(body.purchaseDate !== undefined && {
           purchaseDate: body.purchaseDate ? new Date(body.purchaseDate) : null,
         }),
-        ...(body.assetNo !== undefined && { assetNo: body.assetNo }),
+        // assetNo(장비번호)는 수정 시 고정 — 절대 변경하지 않는다
         ...(body.name !== undefined && { name: body.name }),
         ...(body.spec !== undefined && { spec: body.spec }),
         ...(body.quantity !== undefined && { quantity: Number(body.quantity) || 1 }),

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       purchaseDate,
-      assetNo,
+      kind,
       name,
       spec,
       quantity,
@@ -45,10 +45,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "name은 필수입니다." }, { status: 400 });
     }
 
+    // 장비번호 자동 생성: 연구용→S, 그 외(일반)→R, 같은 접두사 최대 숫자 + 1 (3자리 zero-pad)
+    const prefix = kind === "연구용" ? "S" : "R";
+    const existing = await prisma.asset.findMany({
+      where: { assetNo: { startsWith: prefix } },
+      select: { assetNo: true },
+    });
+    const re = new RegExp(`^${prefix}-?(\\d+)$`);
+    let maxNum = 0;
+    for (const a of existing) {
+      const m = a.assetNo?.match(re);
+      if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
+    }
+    const assetNo = `${prefix}${String(maxNum + 1).padStart(3, "0")}`;
+
     const asset = await prisma.asset.create({
       data: {
         purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
-        assetNo: assetNo ?? null,
+        assetNo,
         name,
         spec: spec ?? null,
         quantity: Number(quantity) || 1,
