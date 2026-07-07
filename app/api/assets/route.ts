@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
+import { nextAssetNo } from "@/lib/assetNo";
 
 export const runtime = "nodejs"; // Prisma는 edge 불가
 
@@ -45,19 +46,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "name은 필수입니다." }, { status: 400 });
     }
 
-    // 장비번호 자동 생성: 연구용→S, 그 외(일반)→R, 같은 접두사 최대 숫자 + 1 (3자리 zero-pad)
-    const prefix = kind === "연구용" ? "S" : "R";
-    const existing = await prisma.asset.findMany({
-      where: { assetNo: { startsWith: prefix } },
-      select: { assetNo: true },
-    });
-    const re = new RegExp(`^${prefix}-?(\\d+)$`);
-    let maxNum = 0;
-    for (const a of existing) {
-      const m = a.assetNo?.match(re);
-      if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10));
-    }
-    const assetNo = `${prefix}${String(maxNum + 1).padStart(3, "0")}`;
+    // 장비번호 자동 생성(연구용→S, 그 외→R): 저장 시점에 공유 함수로 재확정
+    const assetNo = await nextAssetNo(kind);
 
     const asset = await prisma.asset.create({
       data: {
