@@ -4,7 +4,6 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import type { Patent } from "@/lib/types";
 import type { LookupItem } from "@/lib/useLookups";
-import DatePickerField from "@/components/DatePickerField";
 
 interface PatentFormModalProps {
   initial?: Patent;
@@ -167,10 +166,11 @@ export default function PatentFormModal({
               </div>
               <div>
                 <label className={labelCls}>진행일자</label>
-                <DatePickerField
-                  value={eventDate}
-                  onChange={setEventDate}
+                <input
+                  type="date"
                   className={inputCls}
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
                 />
               </div>
             </>

@@ -140,7 +140,13 @@ export default function AttachmentManager({
                       key={f.id}
                       className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 px-2.5 py-1.5"
                     >
-                      <div className="flex min-w-0 items-center gap-2">
+                      <a
+                        href={api(`/api/attachments/${f.id}/file`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex min-w-0 items-center gap-2 hover:opacity-80"
+                        title="미리보기"
+                      >
                         {isImage ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -164,7 +170,7 @@ export default function AttachmentManager({
                             </p>
                           )}
                         </div>
-                      </div>
+                      </a>
                       <div className="flex shrink-0 items-center gap-1">
                         <a
                           href={api(`/api/attachments/${f.id}/file?download=1`)}

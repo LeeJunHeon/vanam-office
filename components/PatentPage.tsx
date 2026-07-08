@@ -8,7 +8,6 @@ import { useLookups, type LookupItem } from "@/lib/useLookups";
 import { badgeClass, currentStatus } from "@/lib/lookups";
 import PatentFormModal from "@/components/PatentFormModal";
 import AttachmentManager from "@/components/AttachmentManager";
-import DatePickerField from "@/components/DatePickerField";
 
 export default function PatentPage() {
   const [patents, setPatents] = useState<Patent[]>([]);
@@ -453,9 +452,10 @@ function PatentDetail({
             <label className="mb-1 block text-xs font-medium text-gray-600">
               일자
             </label>
-            <DatePickerField
+            <input
+              type="date"
               value={evDate}
-              onChange={setEvDate}
+              onChange={(e) => setEvDate(e.target.value)}
               className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-200"
             />
           </div>

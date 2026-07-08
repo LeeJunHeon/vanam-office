@@ -21,11 +21,11 @@ const pageTitle: Record<Page, string> = {
 
 export default function AppShell() {
   const [page, setPage] = useState<Page>("dashboard");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // 데스크탑 기본 열림, 모바일 닫힘 (SSR은 닫힘으로 안전 시작)
+  // 로드 시 열린 상태(애니메이션 없음), 모바일이면 닫기
   useEffect(() => {
-    if (window.innerWidth >= 1024) setSidebarOpen(true);
+    if (window.innerWidth < 1024) setSidebarOpen(false);
   }, []);
 
   return (
