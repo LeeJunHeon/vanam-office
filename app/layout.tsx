@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "경영지원",
@@ -26,7 +27,7 @@ export default function RootLayout({
             "'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif",
         }}
       >
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
