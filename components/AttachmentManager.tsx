@@ -29,8 +29,10 @@ export default function AttachmentManager({
   docTypes,
 }: AttachmentManagerProps) {
   const [items, setItems] = useState<Att[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+  const [busyCode, setBusyCode] = useState<string | null>(null);
+  const [errCode, setErrCode] = useState<{ code: string; msg: string } | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     try {
@@ -50,8 +52,8 @@ export default function AttachmentManager({
 
   const upload = async (files: FileList | null, code: string) => {
     if (!files || files.length === 0) return;
-    setBusy(true);
-    setErr("");
+    setBusyCode(code);
+    setErrCode(null);
     try {
       for (const file of Array.from(files)) {
         const form = new FormData();
@@ -67,9 +69,12 @@ export default function AttachmentManager({
       }
       await load();
     } catch {
-      setErr("일부 파일 업로드에 실패했습니다. 다시 시도해 주세요.");
+      setErrCode({
+        code,
+        msg: "업로드 실패 — 대용량 파일이면 실패할 수 있습니다.",
+      });
     } finally {
-      setBusy(false);
+      setBusyCode(null);
     }
   };
 
@@ -85,8 +90,6 @@ export default function AttachmentManager({
 
   return (
     <div className="space-y-3">
-      {busy && <p className="mb-2 text-xs text-blue-600">업로드 중…</p>}
-      {err && <p className="mb-2 text-xs text-rose-600">{err}</p>}
       {docTypes.map((dt) => {
         const files = items.filter((it) => it.docTypeCode === dt.code);
         return (
@@ -118,6 +121,13 @@ export default function AttachmentManager({
             >
               파일을 여기로 끌어다 놓기
             </div>
+
+            {busyCode === dt.code && (
+              <p className="mb-1 text-xs text-blue-600">업로드 중…</p>
+            )}
+            {errCode?.code === dt.code && (
+              <p className="mb-1 text-xs text-rose-600">{errCode.msg}</p>
+            )}
 
             {files.length === 0 ? (
               <p className="text-xs text-gray-300">첨부된 파일 없음</p>
