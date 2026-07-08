@@ -29,6 +29,8 @@ export default function AttachmentManager({
   docTypes,
 }: AttachmentManagerProps) {
   const [items, setItems] = useState<Att[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -48,6 +50,8 @@ export default function AttachmentManager({
 
   const upload = async (files: FileList | null, code: string) => {
     if (!files || files.length === 0) return;
+    setBusy(true);
+    setErr("");
     try {
       for (const file of Array.from(files)) {
         const form = new FormData();
@@ -55,11 +59,17 @@ export default function AttachmentManager({
         form.append("entityId", String(entityId));
         form.append("docTypeCode", code);
         form.append("file", file);
-        await fetch(api("/api/attachments"), { method: "POST", body: form });
+        const res = await fetch(api("/api/attachments"), {
+          method: "POST",
+          body: form,
+        });
+        if (!res.ok) throw new Error("fail");
       }
       await load();
     } catch {
-      // ignore
+      setErr("일부 파일 업로드에 실패했습니다. 다시 시도해 주세요.");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -75,6 +85,8 @@ export default function AttachmentManager({
 
   return (
     <div className="space-y-3">
+      {busy && <p className="mb-2 text-xs text-blue-600">업로드 중…</p>}
+      {err && <p className="mb-2 text-xs text-rose-600">{err}</p>}
       {docTypes.map((dt) => {
         const files = items.filter((it) => it.docTypeCode === dt.code);
         return (
@@ -268,7 +280,11 @@ export async function uploadPending(
       form.append("entityId", String(entityId));
       form.append("docTypeCode", code);
       form.append("file", file);
-      await fetch(api("/api/attachments"), { method: "POST", body: form });
+      const res = await fetch(api("/api/attachments"), {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) throw new Error("fail");
     }
   }
 }

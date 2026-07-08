@@ -43,6 +43,7 @@ export default function AssetPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Asset | null>(null);
   const [toast, setToast] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const { lookups } = useLookups();
   const assetDocTypes = lookups.asset_doc_type ?? [];
@@ -97,6 +98,7 @@ export default function AssetPage() {
     },
     pending: PendingFiles,
   ) => {
+    setSaving(true);
     try {
       if (editing) {
         // 수정: PATCH만 (첨부는 상세에서)
@@ -142,6 +144,8 @@ export default function AssetPage() {
       showToast("등록되었습니다.");
     } catch {
       showToast("저장에 실패했습니다.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -169,15 +173,21 @@ export default function AssetPage() {
         </div>
       )}
 
+      {saving && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/30">
+          <div className="rounded-xl bg-white px-5 py-3 text-sm font-medium text-gray-700 shadow-lg">
+            저장 중…
+          </div>
+        </div>
+      )}
+
       {/* 헤더 */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
-            비품·자산 관리
+            장비관리대장
           </h1>
-          <p className="mt-0.5 text-sm text-gray-500">
-            회사 구매 장비·비품 관리 대장
-          </p>
+          <p className="mt-0.5 text-sm text-gray-500">회사 장비 관리 대장</p>
         </div>
         <button
           onClick={openRegister}
