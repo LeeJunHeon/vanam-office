@@ -186,6 +186,28 @@ export default function PatentPage() {
     }
   };
 
+  const updateEvent = async (
+    eventId: number,
+    eventType: string,
+    eventDate: string,
+  ) => {
+    try {
+      const res = await fetch(api(`/api/patent-events/${eventId}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventType, eventDate: eventDate || null }),
+      });
+      if (!res.ok) {
+        showToast("이벤트 수정에 실패했습니다.");
+        return;
+      }
+      await load();
+      showToast("진행이력이 수정되었습니다.");
+    } catch {
+      showToast("이벤트 수정에 실패했습니다.");
+    }
+  };
+
   return (
     <div className="space-y-5 p-4 sm:p-6">
       {toast && (
@@ -238,6 +260,7 @@ export default function PatentPage() {
           onDelete={() => handleDelete(selected)}
           onAddEvent={addEvent}
           onDeleteEvent={deleteEvent}
+          onUpdateEvent={updateEvent}
         />
       ) : (
         <>
@@ -354,6 +377,7 @@ function PatentDetail({
   onDelete,
   onAddEvent,
   onDeleteEvent,
+  onUpdateEvent,
 }: {
   patent: Patent;
   countryLabel: (code?: string | null) => string;
@@ -367,9 +391,13 @@ function PatentDetail({
   onDelete: () => void;
   onAddEvent: (patentId: number, eventType: string, eventDate: string) => void;
   onDeleteEvent: (eventId: number) => void;
+  onUpdateEvent: (eventId: number, eventType: string, eventDate: string) => void;
 }) {
   const [evType, setEvType] = useState(ipEvents[0]?.code ?? "");
   const [evDate, setEvDate] = useState("");
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editType, setEditType] = useState("");
+  const [editDate, setEditDate] = useState("");
 
   const timeline = [...(patent.events ?? [])].sort((a, b) => {
     const da = a.eventDate ? +new Date(a.eventDate) : 0;
@@ -411,8 +439,20 @@ function PatentDetail({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <h2 className="text-lg font-bold text-gray-900">{patent.name}</h2>
+        {(() => {
+          const code = currentStatus(patent.events);
+          return code ? (
+            <span
+              className={`${badgeClass(
+                eventColor(code),
+              )} inline-flex rounded-md px-3 py-1 text-sm font-semibold`}
+            >
+              {eventLabel(code)}
+            </span>
+          ) : null;
+        })()}
       </div>
 
       {/* 기본정보 */}
@@ -479,28 +519,80 @@ function PatentDetail({
                     eventColor(ev.eventType),
                   )}`}
                 />
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900">
-                        {eventLabel(ev.eventType)}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {ev.eventDate ? ev.eventDate.slice(0, 10) : "-"}
-                      </span>
-                    </div>
-                    {ev.note && (
-                      <p className="mt-0.5 text-xs text-gray-500">{ev.note}</p>
-                    )}
+                {editId === ev.id ? (
+                  <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+                    <select
+                      value={editType}
+                      onChange={(e) => setEditType(e.target.value)}
+                      className="rounded-lg border border-gray-200 px-2 py-1 text-sm"
+                    >
+                      {ipEvents.map((x) => (
+                        <option key={x.code} value={x.code}>
+                          {x.label}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="date"
+                      value={editDate}
+                      onChange={(e) => setEditDate(e.target.value)}
+                      className="rounded-lg border border-gray-200 px-2 py-1 text-sm"
+                    />
+                    <button
+                      onClick={() => {
+                        onUpdateEvent(ev.id, editType, editDate);
+                        setEditId(null);
+                      }}
+                      className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100"
+                    >
+                      저장
+                    </button>
+                    <button
+                      onClick={() => setEditId(null)}
+                      className="rounded-lg bg-gray-100 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-200"
+                    >
+                      취소
+                    </button>
                   </div>
-                  <button
-                    onClick={() => onDeleteEvent(ev.id)}
-                    className="shrink-0 rounded p-1 text-gray-400 hover:bg-rose-100 hover:text-rose-600"
-                    title="삭제"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">
+                          {eventLabel(ev.eventType)}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {ev.eventDate ? ev.eventDate.slice(0, 10) : "-"}
+                        </span>
+                      </div>
+                      {ev.note && (
+                        <p className="mt-0.5 text-xs text-gray-500">{ev.note}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setEditId(ev.id);
+                          setEditType(ev.eventType);
+                          setEditDate(
+                            ev.eventDate ? ev.eventDate.slice(0, 10) : "",
+                          );
+                        }}
+                        className="rounded p-1 text-gray-400 hover:bg-blue-100 hover:text-blue-600"
+                        title="수정"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => onDeleteEvent(ev.id)}
+                        className="rounded p-1 text-gray-400 hover:bg-rose-100 hover:text-rose-600"
+                        title="삭제"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ol>
