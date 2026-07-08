@@ -4,18 +4,25 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import type { Patent } from "@/lib/types";
 import type { LookupItem } from "@/lib/useLookups";
+import DatePickerField from "@/components/DatePickerField";
 
 interface PatentFormModalProps {
   initial?: Patent;
-  ipTypes: LookupItem[];
+  countries: LookupItem[];
+  kinds: LookupItem[];
+  events: LookupItem[];
   onClose: () => void;
-  onSubmit: (p: {
-    ipTypeCode: string;
-    name: string;
-    number: string | null;
-    manager: string | null;
-    note: string | null;
-  }) => void;
+  onSubmit: (
+    p: {
+      countryCode: string | null;
+      ipKindCode: string | null;
+      name: string;
+      number: string | null;
+      manager: string | null;
+      note: string | null;
+    },
+    firstEvent: { eventType: string; eventDate: string | null } | null,
+  ) => void;
 }
 
 const inputCls =
@@ -24,27 +31,43 @@ const labelCls = "mb-1 block text-xs font-medium text-gray-600";
 
 export default function PatentFormModal({
   initial,
-  ipTypes,
+  countries,
+  kinds,
+  events,
   onClose,
   onSubmit,
 }: PatentFormModalProps) {
-  const [ipTypeCode, setIpTypeCode] = useState(
-    initial?.ipTypeCode ?? ipTypes[0]?.code ?? ""
+  const [countryCode, setCountryCode] = useState(
+    initial?.countryCode ?? countries[0]?.code ?? ""
+  );
+  const [ipKindCode, setIpKindCode] = useState(
+    initial?.ipKindCode ?? kinds[0]?.code ?? ""
   );
   const [name, setName] = useState(initial?.name ?? "");
   const [number, setNumber] = useState(initial?.number ?? "");
-  const [manager, setManager] = useState(initial?.manager ?? "");
+  const [manager, setManager] = useState(initial?.manager ?? "반암 주식회사");
   const [note, setNote] = useState(initial?.note ?? "");
+  // 신규 등록 시 최초 진행상태
+  const [eventType, setEventType] = useState(events[0]?.code ?? "");
+  const [eventDate, setEventDate] = useState("");
 
   const submit = () => {
-    if (!name.trim() || !ipTypeCode) return;
-    onSubmit({
-      ipTypeCode,
-      name: name.trim(),
-      number: number.trim() || null,
-      manager: manager.trim() || null,
-      note: note.trim() || null,
-    });
+    if (!name.trim()) return;
+    const firstEvent =
+      !initial && eventType
+        ? { eventType, eventDate: eventDate || null }
+        : null;
+    onSubmit(
+      {
+        countryCode: countryCode || null,
+        ipKindCode: ipKindCode || null,
+        name: name.trim(),
+        number: number.trim() || null,
+        manager: manager.trim() || null,
+        note: note.trim() || null,
+      },
+      firstEvent,
+    );
     onClose();
   };
 
@@ -53,7 +76,7 @@ export default function PatentFormModal({
       <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
         <div className="flex items-start justify-between">
           <h2 className="text-lg font-bold text-gray-900">
-            {initial ? "특허 수정" : "특허 등록"}
+            {initial ? "지식재산권 수정" : "지식재산권 등록"}
           </h2>
           <button
             onClick={onClose}
@@ -65,15 +88,29 @@ export default function PatentFormModal({
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelCls}>지식재산권 종류</label>
+            <label className={labelCls}>국가</label>
             <select
               className={inputCls}
-              value={ipTypeCode}
-              onChange={(e) => setIpTypeCode(e.target.value)}
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
             >
-              {ipTypes.map((t) => (
-                <option key={t.code} value={t.code}>
-                  {t.label}
+              {countries.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>유형</label>
+            <select
+              className={inputCls}
+              value={ipKindCode}
+              onChange={(e) => setIpKindCode(e.target.value)}
+            >
+              {kinds.map((k) => (
+                <option key={k.code} value={k.code}>
+                  {k.label}
                 </option>
               ))}
             </select>
@@ -95,7 +132,7 @@ export default function PatentFormModal({
             />
           </div>
           <div>
-            <label className={labelCls}>관리자</label>
+            <label className={labelCls}>권리권자</label>
             <input
               className={inputCls}
               value={manager}
@@ -111,6 +148,33 @@ export default function PatentFormModal({
               onChange={(e) => setNote(e.target.value)}
             />
           </div>
+
+          {!initial && (
+            <>
+              <div>
+                <label className={labelCls}>최초 진행상태</label>
+                <select
+                  className={inputCls}
+                  value={eventType}
+                  onChange={(e) => setEventType(e.target.value)}
+                >
+                  {events.map((ev) => (
+                    <option key={ev.code} value={ev.code}>
+                      {ev.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>진행일자</label>
+                <DatePickerField
+                  value={eventDate}
+                  onChange={setEventDate}
+                  className={inputCls}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="mt-6 flex justify-end gap-2">

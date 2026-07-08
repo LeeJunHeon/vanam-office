@@ -16,6 +16,19 @@ export function badgeClass(color?: string | null) {
   return (color && COLOR_BADGE[color]) || COLOR_BADGE.gray;
 }
 
+// 이벤트 배열에서 현재 상태 코드 = 가장 최근(날짜 우선, 없으면 마지막) 이벤트의 eventType
+export function currentStatus(
+  events?: { eventType: string; eventDate: string | null }[],
+): string | null {
+  if (!events || events.length === 0) return null;
+  const sorted = [...events].sort((a, b) => {
+    const da = a.eventDate ? +new Date(a.eventDate) : 0;
+    const db = b.eventDate ? +new Date(b.eventDate) : 0;
+    return da - db;
+  });
+  return sorted[sorted.length - 1].eventType;
+}
+
 // 장비번호 접두사 → 구분 (S=연구용, R=일반)
 export const ASSET_PREFIX: Record<string, string> = { S: "연구용", R: "일반" };
 
