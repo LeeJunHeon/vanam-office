@@ -10,10 +10,11 @@ import {
   X,
   LogOut,
   ArrowLeft,
+  Settings,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 
-type Page = "dashboard" | "patent" | "asset" | "hr";
+type Page = "dashboard" | "patent" | "asset" | "hr" | "settings";
 
 interface SidebarProps {
   currentPage: Page;
@@ -27,6 +28,7 @@ const navItems: { key: Page; label: string; icon: typeof Award }[] = [
   { key: "patent", label: "지식재산권", icon: Award },
   { key: "asset", label: "장비관리대장", icon: Package },
   { key: "hr", label: "인사정보카드", icon: IdCard },
+  { key: "settings", label: "설정", icon: Settings },
 ];
 
 export default function Sidebar({

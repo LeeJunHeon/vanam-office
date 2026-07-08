@@ -7,14 +7,16 @@ import DashboardPage from "@/components/DashboardPage";
 import PatentPage from "@/components/PatentPage";
 import AssetPage from "@/components/AssetPage";
 import PersonalInfoPage from "@/components/PersonalInfoPage";
+import SettingsPage from "@/components/SettingsPage";
 
-type Page = "dashboard" | "patent" | "asset" | "hr";
+type Page = "dashboard" | "patent" | "asset" | "hr" | "settings";
 
 const pageTitle: Record<Page, string> = {
   dashboard: "대시보드",
   patent: "지식재산권",
   asset: "장비관리대장",
   hr: "인사정보카드",
+  settings: "설정",
 };
 
 export default function AppShell() {
@@ -44,6 +46,7 @@ export default function AppShell() {
           {page === "patent" && <PatentPage />}
           {page === "asset" && <AssetPage />}
           {page === "hr" && <PersonalInfoPage />}
+          {page === "settings" && <SettingsPage />}
         </main>
       </div>
     </div>
