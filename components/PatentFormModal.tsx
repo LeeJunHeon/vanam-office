@@ -4,12 +4,17 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import type { Patent } from "@/lib/types";
 import type { LookupItem } from "@/lib/useLookups";
+import {
+  AttachmentPicker,
+  type PendingFiles,
+} from "@/components/AttachmentManager";
 
 interface PatentFormModalProps {
   initial?: Patent;
   countries: LookupItem[];
   kinds: LookupItem[];
   events: LookupItem[];
+  docTypes: { code: string; label: string }[];
   onClose: () => void;
   onSubmit: (
     p: {
@@ -21,6 +26,7 @@ interface PatentFormModalProps {
       note: string | null;
     },
     firstEvent: { eventType: string; eventDate: string | null } | null,
+    pending: PendingFiles,
   ) => void;
 }
 
@@ -33,6 +39,7 @@ export default function PatentFormModal({
   countries,
   kinds,
   events,
+  docTypes,
   onClose,
   onSubmit,
 }: PatentFormModalProps) {
@@ -49,6 +56,8 @@ export default function PatentFormModal({
   // 신규 등록 시 최초 진행상태
   const [eventType, setEventType] = useState(events[0]?.code ?? "");
   const [eventDate, setEventDate] = useState("");
+  // 첨부(신규 등록 시 로컬에 모아 저장 후 업로드)
+  const [pending, setPending] = useState<PendingFiles>({});
 
   const submit = () => {
     if (!name.trim()) return;
@@ -66,6 +75,7 @@ export default function PatentFormModal({
         note: note.trim() || null,
       },
       firstEvent,
+      initial ? {} : pending,
     );
     onClose();
   };
@@ -176,6 +186,19 @@ export default function PatentFormModal({
             </>
           )}
         </div>
+
+        {!initial && (
+          <div className="mt-4">
+            <label className="mb-1 block text-xs font-medium text-gray-600">
+              첨부 서류 <span className="font-normal text-gray-400">(선택)</span>
+            </label>
+            <AttachmentPicker
+              docTypes={docTypes}
+              value={pending}
+              onChange={setPending}
+            />
+          </div>
+        )}
 
         <div className="mt-6 flex justify-end gap-2">
           <button

@@ -7,7 +7,10 @@ import { api } from "@/lib/api";
 import { useLookups, type LookupItem } from "@/lib/useLookups";
 import { badgeClass, currentStatus } from "@/lib/lookups";
 import PatentFormModal from "@/components/PatentFormModal";
-import AttachmentManager from "@/components/AttachmentManager";
+import AttachmentManager, {
+  uploadPending,
+  type PendingFiles,
+} from "@/components/AttachmentManager";
 
 export default function PatentPage() {
   const [patents, setPatents] = useState<Patent[]>([]);
@@ -102,22 +105,39 @@ export default function PatentPage() {
       note: string | null;
     },
     firstEvent: { eventType: string; eventDate: string | null } | null,
+    pending: PendingFiles,
   ) => {
     try {
-      const res = editing
-        ? await fetch(api(`/api/patents/${editing.id}`), {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          })
-        : await fetch(api("/api/patents"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...payload, firstEvent }),
-          });
-      if (!res.ok) {
-        showToast("저장에 실패했습니다.");
-        return;
+      if (editing) {
+        const res = await fetch(api(`/api/patents/${editing.id}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          showToast("저장에 실패했습니다.");
+          return;
+        }
+      } else {
+        const res = await fetch(api("/api/patents"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, firstEvent }),
+        });
+        if (!res.ok) {
+          showToast("저장에 실패했습니다.");
+          return;
+        }
+        const created = await res.json();
+        if (pending && Object.keys(pending).length) {
+          try {
+            await uploadPending("patent", created.id, pending);
+          } catch {
+            showToast(
+              "특허는 등록됐지만 일부 첨부 업로드에 실패했습니다. 상세에서 다시 시도하세요.",
+            );
+          }
+        }
       }
       await load();
       setModalOpen(false);
@@ -241,6 +261,7 @@ export default function PatentPage() {
           countries={countries}
           kinds={kinds}
           events={ipEvents}
+          docTypes={patentDocTypes}
           onClose={() => setModalOpen(false)}
           onSubmit={handleSubmit}
         />
