@@ -40,7 +40,7 @@ export default function AppShell() {
           onToggleSidebar={() => setSidebarOpen((o) => !o)}
         />
         <main className="flex-1 overflow-y-auto bg-gray-50">
-          {page === "dashboard" && <DashboardPage />}
+          {page === "dashboard" && <DashboardPage onNavigate={setPage} />}
           {page === "patent" && <PatentPage />}
           {page === "asset" && <AssetPage />}
           {page === "hr" && <PersonalInfoPage />}
