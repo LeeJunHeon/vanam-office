@@ -43,7 +43,6 @@ model CodeLookup {
 // office.patents — 지식재산권 대장
 model Patent {
   id          Int      @id @default(autoincrement())
-  ipTypeCode  String?  @map("ip_type_code") @db.VarChar(50)
   countryCode String?  @map("country_code") @db.VarChar(50)
   ipKindCode  String?  @map("ip_kind_code") @db.VarChar(50)
   name        String   @db.VarChar(255)

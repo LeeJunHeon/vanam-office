@@ -31,7 +31,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
-      ipTypeCode,
       countryCode,
       ipKindCode,
       name,
@@ -47,7 +46,6 @@ export async function POST(request: Request) {
 
     const patent = await prisma.patent.create({
       data: {
-        ipTypeCode: ipTypeCode ?? null,
         countryCode: countryCode ?? null,
         ipKindCode: ipKindCode ?? null,
         name,

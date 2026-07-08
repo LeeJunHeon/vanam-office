@@ -11,8 +11,6 @@ export type PatentEvent = {
 
 export type Patent = {
   id: number;
-  // DB 컬럼은 nullable이나, 기존 화면(PatentPage)이 string으로 사용 중 → 화면 미변경 위해 string 유지
-  ipTypeCode: string;
   countryCode?: string | null;
   ipKindCode?: string | null;
   name: string;
