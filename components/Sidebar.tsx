@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import {
-  LayoutDashboard,
+  Home,
   Award,
   Package,
   IdCard,
@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 const navItems: { key: Page; label: string; icon: typeof Award }[] = [
-  { key: "dashboard", label: "대시보드", icon: LayoutDashboard },
+  { key: "dashboard", label: "대시보드", icon: Home },
   { key: "patent", label: "지식재산권", icon: Award },
   { key: "asset", label: "장비관리대장", icon: Package },
   { key: "hr", label: "인사정보카드", icon: IdCard },
