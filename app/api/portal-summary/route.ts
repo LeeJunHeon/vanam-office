@@ -12,7 +12,7 @@ export async function GET() {
       patents,
       assets,
       personalInfo,
-      ipGroups,
+      patentsWithEvents,
       priceAgg,
       generalCount,
       researchCount,
@@ -22,7 +22,12 @@ export async function GET() {
       prisma.patent.count(),
       prisma.asset.count(),
       prisma.employeePersonalInfo.count(),
-      prisma.patent.groupBy({ by: ["ipTypeCode"], _count: { _all: true } }),
+      prisma.patent.findMany({
+        select: {
+          id: true,
+          events: { select: { id: true, eventType: true, eventDate: true } },
+        },
+      }),
       prisma.asset.aggregate({ _sum: { price: true } }),
       prisma.asset.count({ where: { assetNo: { startsWith: "R" } } }),
       prisma.asset.count({ where: { assetNo: { startsWith: "S" } } }),
@@ -38,16 +43,36 @@ export async function GET() {
       }),
     ]);
 
-    // ip_type 코드 → 버킷 집계
-    const cnt = (codes: string[]) =>
-      ipGroups
-        .filter((g) => g.ipTypeCode != null && codes.includes(g.ipTypeCode))
-        .reduce((s, g) => s + g._count._all, 0);
+    // 이벤트 현재상태(가장 최근) → 버킷 집계
+    const latestStatus = (
+      events: { id: number; eventType: string; eventDate: Date | null }[],
+    ) => {
+      if (!events || events.length === 0) return null;
+      const sorted = [...events].sort((a, b) => {
+        const da = a.eventDate ? +new Date(a.eventDate) : 0;
+        const db = b.eventDate ? +new Date(b.eventDate) : 0;
+        if (da !== db) return da - db;
+        return a.id - b.id;
+      });
+      return sorted[sorted.length - 1].eventType;
+    };
+    const sc: Record<string, number> = {
+      REGISTERED: 0,
+      TRANSFERRED: 0,
+      APPLIED: 0,
+      DIVISIONAL: 0,
+      CERTIFIED: 0,
+      REJECTED: 0,
+    };
+    for (const p of patentsWithEvents) {
+      const s = latestStatus(p.events);
+      if (s && s in sc) sc[s] += 1;
+    }
     const ipDist = {
-      registered: cnt(["REGISTERED", "TRANSFERRED"]),
-      applied: cnt(["APPLIED", "DIVISIONAL"]),
-      certified: cnt(["CERTIFIED"]),
-      rejected: cnt(["REJECTED"]),
+      registered: sc.REGISTERED + sc.TRANSFERRED,
+      applied: sc.APPLIED + sc.DIVISIONAL,
+      certified: sc.CERTIFIED,
+      rejected: sc.REJECTED,
     };
 
     const assetDist = {
