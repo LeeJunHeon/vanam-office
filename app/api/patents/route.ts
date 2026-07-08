@@ -10,7 +10,10 @@ export async function GET() {
   if (!_auth.ok) return _auth.response;
 
   try {
-    const patents = await prisma.patent.findMany({ orderBy: { id: "desc" } });
+    const patents = await prisma.patent.findMany({
+      orderBy: { id: "desc" },
+      include: { events: { orderBy: [{ eventDate: "asc" }, { id: "asc" }] } },
+    });
     return NextResponse.json(patents);
   } catch {
     return NextResponse.json(
@@ -27,23 +30,44 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { ipTypeCode, name, number, manager, note } = body ?? {};
+    const {
+      ipTypeCode,
+      countryCode,
+      ipKindCode,
+      name,
+      number,
+      manager,
+      note,
+      firstEvent,
+    } = body ?? {};
 
-    if (!name || !ipTypeCode) {
-      return NextResponse.json(
-        { error: "name, ipTypeCode는 필수입니다." },
-        { status: 400 },
-      );
+    if (!name) {
+      return NextResponse.json({ error: "name은 필수입니다." }, { status: 400 });
     }
 
     const patent = await prisma.patent.create({
       data: {
-        ipTypeCode,
+        ipTypeCode: ipTypeCode ?? null,
+        countryCode: countryCode ?? null,
+        ipKindCode: ipKindCode ?? null,
         name,
         number: number ?? null,
         manager: manager ?? null,
         note: note ?? null,
+        ...(firstEvent?.eventType
+          ? {
+              events: {
+                create: {
+                  eventType: firstEvent.eventType,
+                  eventDate: firstEvent.eventDate
+                    ? new Date(firstEvent.eventDate)
+                    : null,
+                },
+              },
+            }
+          : {}),
       },
+      include: { events: true },
     });
 
     return NextResponse.json(patent, { status: 201 });

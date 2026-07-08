@@ -1,14 +1,26 @@
 // API(Prisma) 직렬화 결과에 맞춘 화면용 타입
 // - price(Decimal)·purchaseDate/createdAt(Date)는 JSON에서 문자열로 온다.
 
+export type PatentEvent = {
+  id: number;
+  patentId: number;
+  eventType: string;
+  eventDate: string | null;
+  note: string | null;
+};
+
 export type Patent = {
   id: number;
+  // DB 컬럼은 nullable이나, 기존 화면(PatentPage)이 string으로 사용 중 → 화면 미변경 위해 string 유지
   ipTypeCode: string;
+  countryCode?: string | null;
+  ipKindCode?: string | null;
   name: string;
   number: string | null;
   manager: string | null;
   note: string | null;
   createdAt?: string;
+  events?: PatentEvent[];
 };
 
 export type Asset = {

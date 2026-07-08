@@ -42,18 +42,40 @@ model CodeLookup {
 
 // office.patents — 지식재산권 대장
 model Patent {
-  id         Int      @id @default(autoincrement())
-  ipTypeCode String   @map("ip_type_code") @db.VarChar(50)
-  name       String   @db.VarChar(255)
-  number     String?  @db.VarChar(100)
-  manager    String?  @db.VarChar(100)
-  note       String?
-  createdBy  Int?     @map("created_by")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  id          Int      @id @default(autoincrement())
+  ipTypeCode  String?  @map("ip_type_code") @db.VarChar(50)
+  countryCode String?  @map("country_code") @db.VarChar(50)
+  ipKindCode  String?  @map("ip_kind_code") @db.VarChar(50)
+  name        String   @db.VarChar(255)
+  number      String?  @db.VarChar(100)
+  manager     String?  @db.VarChar(100)
+  note        String?
+  createdBy   Int?     @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
 
-  @@index([ipTypeCode], map: "idx_office_patents_ip_type")
+  events PatentEvent[]
+
+  @@index([countryCode])
+  @@index([ipKindCode])
   @@map("patents")
+  @@schema("office")
+}
+
+// office.patent_events — 지식재산권 진행 이력
+model PatentEvent {
+  id        Int       @id @default(autoincrement())
+  patentId  Int       @map("patent_id")
+  eventType String    @map("event_type") @db.VarChar(50)
+  eventDate DateTime? @map("event_date") @db.Date
+  note      String?
+  createdBy Int?      @map("created_by")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  patent Patent @relation(fields: [patentId], references: [id], onDelete: Cascade)
+
+  @@index([patentId, eventDate])
+  @@map("patent_events")
   @@schema("office")
 }
 

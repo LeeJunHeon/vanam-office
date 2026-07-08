@@ -20,6 +20,8 @@ export async function PATCH(
       where: { id: Number(id) },
       data: {
         ...(body.ipTypeCode !== undefined && { ipTypeCode: body.ipTypeCode }),
+        ...(body.countryCode !== undefined && { countryCode: body.countryCode }),
+        ...(body.ipKindCode !== undefined && { ipKindCode: body.ipKindCode }),
         ...(body.name !== undefined && { name: body.name }),
         ...(body.number !== undefined && { number: body.number }),
         ...(body.manager !== undefined && { manager: body.manager }),

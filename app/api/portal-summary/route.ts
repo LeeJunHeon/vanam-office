@@ -41,7 +41,7 @@ export async function GET() {
     // ip_type 코드 → 버킷 집계
     const cnt = (codes: string[]) =>
       ipGroups
-        .filter((g) => codes.includes(g.ipTypeCode))
+        .filter((g) => g.ipTypeCode != null && codes.includes(g.ipTypeCode))
         .reduce((s, g) => s + g._count._all, 0);
     const ipDist = {
       registered: cnt(["REGISTERED", "TRANSFERRED"]),
