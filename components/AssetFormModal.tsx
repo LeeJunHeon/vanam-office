@@ -191,10 +191,11 @@ export default function AssetFormModal({
           <div>
             <label className={labelCls}>구입금액(원) *</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               className={inputCls}
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              value={price ? Number(price).toLocaleString() : ""}
+              onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ""))}
             />
           </div>
           <div>
@@ -240,7 +241,9 @@ export default function AssetFormModal({
 
           {!initial && (
             <div className="sm:col-span-2">
-              <label className={labelCls}>첨부 서류</label>
+              <label className={labelCls}>
+                첨부 서류 <span className="font-normal text-gray-400">(선택)</span>
+              </label>
               <AttachmentPicker
                 docTypes={docTypes}
                 value={pending}

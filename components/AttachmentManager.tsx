@@ -18,9 +18,6 @@ interface AttachmentManagerProps {
   docTypes: { code: string; label: string }[];
 }
 
-// 선택(옵션)인 서류 코드 — 계약서만 선택
-const OPTIONAL_CODES = new Set(["CONTRACT"]);
-
 function formatSize(size: number | null): string {
   if (!size) return "";
   return `${Math.max(1, Math.round(size / 1024)).toLocaleString()} KB`;
@@ -80,18 +77,10 @@ export default function AttachmentManager({
     <div className="space-y-3">
       {docTypes.map((dt) => {
         const files = items.filter((it) => it.docTypeCode === dt.code);
-        const optional = OPTIONAL_CODES.has(dt.code);
         return (
           <div key={dt.code} className="rounded-xl border border-gray-100 p-3">
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-700">
-                {dt.label}
-                {optional && (
-                  <span className="ml-1 text-xs font-normal text-gray-400">
-                    (선택)
-                  </span>
-                )}
-              </p>
+              <p className="text-sm font-medium text-gray-700">{dt.label}</p>
               <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
                 <Upload size={13} />
                 파일 추가
@@ -105,6 +94,17 @@ export default function AttachmentManager({
                   }}
                 />
               </label>
+            </div>
+
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                upload(e.dataTransfer.files, dt.code);
+              }}
+              className="mb-2 rounded-lg border border-dashed border-gray-200 px-3 py-2 text-center text-[11px] text-gray-400"
+            >
+              파일을 여기로 끌어다 놓기
             </div>
 
             {files.length === 0 ? (
@@ -196,18 +196,10 @@ export function AttachmentPicker({
     <div className="space-y-3">
       {docTypes.map((dt) => {
         const files = value[dt.code] ?? [];
-        const optional = OPTIONAL_CODES.has(dt.code);
         return (
           <div key={dt.code} className="rounded-xl border border-gray-100 p-3">
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-medium text-gray-700">
-                {dt.label}
-                {optional && (
-                  <span className="ml-1 text-xs font-normal text-gray-400">
-                    (선택)
-                  </span>
-                )}
-              </p>
+              <p className="text-sm font-medium text-gray-700">{dt.label}</p>
               <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">
                 <Upload size={13} />
                 파일 추가
@@ -221,6 +213,16 @@ export function AttachmentPicker({
                   }}
                 />
               </label>
+            </div>
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                add(dt.code, e.dataTransfer.files);
+              }}
+              className="mb-2 rounded-lg border border-dashed border-gray-200 px-3 py-2 text-center text-[11px] text-gray-400"
+            >
+              파일을 여기로 끌어다 놓기
             </div>
             {files.length === 0 ? (
               <p className="text-xs text-gray-300">첨부된 파일 없음</p>
