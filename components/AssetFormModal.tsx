@@ -9,6 +9,7 @@ import {
   AttachmentPicker,
   type PendingFiles,
 } from "@/components/AttachmentManager";
+import DatePickerField from "@/components/DatePickerField";
 
 interface AssetFormModalProps {
   initial?: Asset;
@@ -129,11 +130,10 @@ export default function AssetFormModal({
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelCls}>구입일자 *</label>
-            <input
-              type="date"
-              className={inputCls}
+            <DatePickerField
               value={purchaseDate}
-              onChange={(e) => setPurchaseDate(e.target.value)}
+              onChange={setPurchaseDate}
+              className={inputCls}
             />
           </div>
           {initial ? (
