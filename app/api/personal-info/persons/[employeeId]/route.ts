@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requirePersonalInfo } from "@/lib/auth-helpers";
 
 export const runtime = "nodejs"; // Prisma는 edge 불가
 
@@ -9,7 +9,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ employeeId: string }> },
 ) {
-  const _auth = await requireAdmin();
+  const _auth = await requirePersonalInfo();
   if (!_auth.ok) return _auth.response;
 
   try {

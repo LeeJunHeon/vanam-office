@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requirePersonalInfo } from "@/lib/auth-helpers";
 import type { PersonalListItem } from "@/lib/types";
 
 export const runtime = "nodejs"; // Prisma는 edge 불가
 
 // GET /api/personal-info — 재직 직원 목록(신원은 hr에서 읽기 전용)
 export async function GET() {
-  const _auth = await requireAdmin();
+  const _auth = await requirePersonalInfo();
   if (!_auth.ok) return _auth.response;
 
   try {

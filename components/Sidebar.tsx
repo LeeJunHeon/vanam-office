@@ -21,6 +21,7 @@ interface SidebarProps {
   onNavigate: (page: Page) => void;
   isOpen: boolean;
   onClose: () => void;
+  canViewHr?: boolean;
 }
 
 const navItems: { key: Page; label: string; icon: typeof Award }[] = [
@@ -36,6 +37,7 @@ export default function Sidebar({
   onNavigate,
   isOpen,
   onClose,
+  canViewHr = false,
 }: SidebarProps) {
   const { data: session } = useSession();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -105,7 +107,9 @@ export default function Sidebar({
 
         {/* 네비게이션 */}
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => item.key !== "hr" || canViewHr)
+            .map((item) => {
             const Icon = item.icon;
             const active = currentPage === item.key;
             return (

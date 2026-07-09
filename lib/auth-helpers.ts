@@ -56,3 +56,31 @@ export async function requireAdmin(): Promise<
     };
   return r;
 }
+
+// 인사정보 카드 접근 허용 employeeId (이동학=5). CEO는 role로 통과.
+const PERSONAL_INFO_EMPLOYEE_IDS = new Set<number>([5]);
+
+export function canViewPersonalInfo(
+  session: Session | null | undefined,
+): boolean {
+  if (session?.user?.role === "ceo") return true;
+  const empId = session?.user?.employeeId;
+  return empId != null && PERSONAL_INFO_EMPLOYEE_IDS.has(empId);
+}
+
+// 인사정보 API 가드 (CEO 또는 이동학만 — admin도 차단)
+export async function requirePersonalInfo(): Promise<
+  { ok: true; session: Session } | { ok: false; response: NextResponse }
+> {
+  const r = await requireSession();
+  if (!r.ok) return r;
+  if (!canViewPersonalInfo(r.session))
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "인사정보 접근 권한이 없습니다." },
+        { status: 403 },
+      ),
+    };
+  return r;
+}

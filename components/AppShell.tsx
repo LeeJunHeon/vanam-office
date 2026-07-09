@@ -19,7 +19,7 @@ const pageTitle: Record<Page, string> = {
   settings: "설정",
 };
 
-export default function AppShell() {
+export default function AppShell({ canViewHr = false }: { canViewHr?: boolean }) {
   const [page, setPage] = useState<Page>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -35,6 +35,7 @@ export default function AppShell() {
         onNavigate={setPage}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        canViewHr={canViewHr}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <Header
@@ -45,7 +46,7 @@ export default function AppShell() {
           {page === "dashboard" && <DashboardPage onNavigate={setPage} />}
           {page === "patent" && <PatentPage />}
           {page === "asset" && <AssetPage />}
-          {page === "hr" && <PersonalInfoPage />}
+          {page === "hr" && canViewHr && <PersonalInfoPage />}
           {page === "settings" && <SettingsPage />}
         </main>
       </div>
