@@ -14,7 +14,6 @@ interface PatentFormModalProps {
   countries: LookupItem[];
   kinds: LookupItem[];
   events: LookupItem[];
-  docTypes: { code: string; label: string }[];
   onClose: () => void;
   onSubmit: (
     p: {
@@ -39,7 +38,6 @@ export default function PatentFormModal({
   countries,
   kinds,
   events,
-  docTypes,
   onClose,
   onSubmit,
 }: PatentFormModalProps) {
@@ -57,7 +55,7 @@ export default function PatentFormModal({
   const [eventType, setEventType] = useState(events[0]?.code ?? "");
   const [eventDate, setEventDate] = useState("");
   // 첨부(신규 등록 시 로컬에 모아 저장 후 업로드)
-  const [pending, setPending] = useState<PendingFiles>({});
+  const [pending, setPending] = useState<PendingFiles>([]);
 
   const submit = () => {
     if (!name.trim()) return;
@@ -75,7 +73,7 @@ export default function PatentFormModal({
         note: note.trim() || null,
       },
       firstEvent,
-      initial ? {} : pending,
+      initial ? [] : pending,
     );
     onClose();
   };
@@ -192,11 +190,7 @@ export default function PatentFormModal({
             <label className="mb-1 block text-xs font-medium text-gray-600">
               첨부 서류 <span className="font-normal text-gray-400">(선택)</span>
             </label>
-            <AttachmentPicker
-              docTypes={docTypes}
-              value={pending}
-              onChange={setPending}
-            />
+            <AttachmentPicker value={pending} onChange={setPending} />
           </div>
         )}
 

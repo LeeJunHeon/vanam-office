@@ -15,7 +15,6 @@ import type { Asset } from "@/lib/types";
 import { api } from "@/lib/api";
 import { assetKind, ASSET_KIND_BADGE } from "@/lib/lookups";
 import { exportToExcel } from "@/lib/excel";
-import { useLookups } from "@/lib/useLookups";
 import AssetFormModal from "@/components/AssetFormModal";
 import AttachmentManager, {
   uploadPending,
@@ -55,8 +54,6 @@ export default function AssetPage() {
   const [toast, setToast] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const { lookups } = useLookups();
-  const assetDocTypes = lookups.asset_doc_type ?? [];
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -203,7 +200,7 @@ export default function AssetPage() {
         return;
       }
       const created = await res.json();
-      if (pending && Object.keys(pending).length) {
+      if (pending && pending.length) {
         try {
           await uploadPending("asset", created.id, pending);
         } catch {
@@ -283,7 +280,6 @@ export default function AssetPage() {
       {modalOpen && (
         <AssetFormModal
           initial={editing ?? undefined}
-          docTypes={assetDocTypes}
           onClose={() => setModalOpen(false)}
           onSubmit={handleSubmit}
         />
@@ -292,7 +288,6 @@ export default function AssetPage() {
       {selected ? (
         <AssetDetail
           asset={selected}
-          docTypes={assetDocTypes}
           onBack={() => setSelected(null)}
           onEdit={() => openEdit(selected)}
           onDelete={() => handleDelete(selected)}
@@ -412,13 +407,11 @@ export default function AssetPage() {
 
 function AssetDetail({
   asset,
-  docTypes,
   onBack,
   onEdit,
   onDelete,
 }: {
   asset: Asset;
-  docTypes: { code: string; label: string }[];
   onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -475,11 +468,7 @@ function AssetDetail({
       {/* 첨부 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <h3 className="mb-3 text-sm font-semibold text-gray-900">관련 서류</h3>
-        <AttachmentManager
-          entityType="asset"
-          entityId={asset.id}
-          docTypes={docTypes}
-        />
+        <AttachmentManager entityType="asset" entityId={asset.id} />
       </div>
     </div>
   );

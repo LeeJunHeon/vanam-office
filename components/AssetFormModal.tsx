@@ -12,7 +12,6 @@ import {
 
 interface AssetFormModalProps {
   initial?: Asset;
-  docTypes: { code: string; label: string }[];
   onClose: () => void;
   onSubmit: (
     p: {
@@ -38,7 +37,6 @@ const labelCls = "mb-1 block text-xs font-medium text-gray-600";
 
 export default function AssetFormModal({
   initial,
-  docTypes,
   onClose,
   onSubmit,
 }: AssetFormModalProps) {
@@ -65,7 +63,7 @@ export default function AssetFormModal({
     initial?.managerPrimary ?? "한수덕"
   );
   const [managerSub, setManagerSub] = useState(initial?.managerSub ?? "이동학");
-  const [pending, setPending] = useState<PendingFiles>({});
+  const [pending, setPending] = useState<PendingFiles>([]);
 
   // 종류 선택 시 부여될 장비번호 미리보기 (신규만)
   const [previewNo, setPreviewNo] = useState("");
@@ -106,7 +104,7 @@ export default function AssetFormModal({
         managerPrimary: managerPrimary.trim(),
         managerSub: managerSub.trim(),
       },
-      initial ? {} : pending,
+      initial ? [] : pending,
     );
     onClose();
   };
@@ -244,11 +242,7 @@ export default function AssetFormModal({
               <label className={labelCls}>
                 첨부 서류 <span className="font-normal text-gray-400">(선택)</span>
               </label>
-              <AttachmentPicker
-                docTypes={docTypes}
-                value={pending}
-                onChange={setPending}
-              />
+              <AttachmentPicker value={pending} onChange={setPending} />
             </div>
           )}
         </div>

@@ -34,7 +34,6 @@ export default function PatentPage() {
   const countries = lookups.ip_country ?? [];
   const kinds = lookups.ip_kind ?? [];
   const ipEvents = lookups.ip_event ?? [];
-  const patentDocTypes = lookups.patent_doc_type ?? [];
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -211,7 +210,7 @@ export default function PatentPage() {
           return;
         }
         const created = await res.json();
-        if (pending && Object.keys(pending).length) {
+        if (pending && pending.length) {
           try {
             await uploadPending("patent", created.id, pending);
           } catch {
@@ -352,7 +351,6 @@ export default function PatentPage() {
           countries={countries}
           kinds={kinds}
           events={ipEvents}
-          docTypes={patentDocTypes}
           onClose={() => setModalOpen(false)}
           onSubmit={handleSubmit}
         />
@@ -366,7 +364,6 @@ export default function PatentPage() {
           eventLabel={eventLabel}
           eventColor={eventColor}
           ipEvents={ipEvents}
-          docTypes={patentDocTypes}
           onBack={() => setSelected(null)}
           onEdit={() => openEdit(selected)}
           onDelete={() => handleDelete(selected)}
@@ -498,7 +495,6 @@ function PatentDetail({
   eventLabel,
   eventColor,
   ipEvents,
-  docTypes,
   onBack,
   onEdit,
   onDelete,
@@ -512,7 +508,6 @@ function PatentDetail({
   eventLabel: (code: string) => string;
   eventColor: (code: string) => string | null | undefined;
   ipEvents: LookupItem[];
-  docTypes: { code: string; label: string }[];
   onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -729,11 +724,7 @@ function PatentDetail({
       {/* 첨부 */}
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <h3 className="mb-3 text-sm font-semibold text-gray-900">관련 문서</h3>
-        <AttachmentManager
-          entityType="patent"
-          entityId={patent.id}
-          docTypes={docTypes}
-        />
+        <AttachmentManager entityType="patent" entityId={patent.id} />
       </div>
     </div>
   );
