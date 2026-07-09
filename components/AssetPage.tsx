@@ -1,10 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import {
+  Plus,
+  ArrowLeft,
+  Pencil,
+  Trash2,
+  Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import type { Asset } from "@/lib/types";
 import { api } from "@/lib/api";
 import { assetKind, ASSET_KIND_BADGE } from "@/lib/lookups";
+import { exportToExcel } from "@/lib/excel";
 import { useLookups } from "@/lib/useLookups";
 import AssetFormModal from "@/components/AssetFormModal";
 import AttachmentManager, {
@@ -71,6 +81,69 @@ export default function AssetPage() {
     filter === "all"
       ? assets
       : assets.filter((a) => assetKind(a.assetNo ?? "") === filter);
+
+  // ── 정렬 (기본: 구입일자 오름차순) ──
+  type SortKey =
+    | "purchaseDate" | "assetNo" | "name" | "spec" | "quantity" | "price"
+    | "vendor" | "purpose" | "location" | "managerPrimary" | "managerSub";
+  const [sortKey, setSortKey] = useState<SortKey>("purchaseDate");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const sorted = [...visible].sort((a, b) => {
+    let d = 0;
+    switch (sortKey) {
+      case "purchaseDate": d = (a.purchaseDate ?? "").localeCompare(b.purchaseDate ?? ""); break;
+      case "quantity": d = a.quantity - b.quantity; break;
+      case "price":
+        d = (a.price == null ? -Infinity : Number(a.price)) -
+            (b.price == null ? -Infinity : Number(b.price)); break;
+      default:
+        d = (((a[sortKey] as string | null) ?? "")
+          .localeCompare(((b[sortKey] as string | null) ?? ""), "ko", { numeric: true }));
+    }
+    if (d === 0) d = a.id - b.id;
+    return sortDir === "asc" ? d : -d;
+  });
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((p) => (p === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+
+  const handleExcel = () => {
+    exportToExcel({
+      fileName: `장비관리대장_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      sheetName: "장비관리대장",
+      columns: [
+        { header: "구입일자", key: "purchaseDate", width: 14 },
+        { header: "장비번호", key: "assetNo", width: 14 },
+        { header: "구분", key: "kind", width: 10 },
+        { header: "장비명", key: "name", width: 28 },
+        { header: "규격", key: "spec", width: 20 },
+        { header: "수량", key: "quantity", width: 8 },
+        { header: "구입금액(원)", key: "price", width: 16 },
+        { header: "구입처", key: "vendor", width: 18 },
+        { header: "용도", key: "purpose", width: 18 },
+        { header: "설치장소", key: "location", width: 18 },
+        { header: "관리자_정", key: "managerPrimary", width: 12 },
+        { header: "관리자_부", key: "managerSub", width: 12 },
+      ],
+      rows: sorted.map((a) => ({
+        purchaseDate: a.purchaseDate?.slice(0, 10) || "-",
+        assetNo: a.assetNo || "-",
+        kind: assetKind(a.assetNo ?? ""),
+        name: a.name,
+        spec: a.spec || "-",
+        quantity: a.quantity,
+        price: a.price == null ? "-" : Number(a.price), // 숫자로 넣어 엑셀에서 합계/정렬 가능
+        vendor: a.vendor || "-",
+        purpose: a.purpose || "-",
+        location: a.location || "-",
+        managerPrimary: a.managerPrimary || "-",
+        managerSub: a.managerSub || "-",
+      })),
+    });
+  };
 
   const openRegister = () => {
     setEditing(null);
@@ -189,13 +262,22 @@ export default function AssetPage() {
           </h1>
           <p className="mt-0.5 text-sm text-gray-500">회사 장비 관리 대장</p>
         </div>
-        <button
-          onClick={openRegister}
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600"
-        >
-          <Plus size={16} />
-          장비 등록
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExcel}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+          >
+            <Download size={16} />
+            엑셀 다운로드
+          </button>
+          <button
+            onClick={openRegister}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600"
+          >
+            <Plus size={16} />
+            장비 등록
+          </button>
+        </div>
       </div>
 
       {modalOpen && (
@@ -240,30 +322,41 @@ export default function AssetPage() {
               <table className="w-full min-w-[1000px]">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
-                    {[
-                      "구입일자",
-                      "장비번호",
-                      "장비명",
-                      "규격",
-                      "수량",
-                      "구입금액(원)",
-                      "구입처",
-                      "용도",
-                      "설치장소",
-                      "관리자_정",
-                      "관리자_부",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs font-semibold text-gray-500"
-                      >
-                        {h}
-                      </th>
-                    ))}
+                    {([
+                      { key: "purchaseDate", label: "구입일자" },
+                      { key: "assetNo", label: "장비번호" },
+                      { key: "name", label: "장비명" },
+                      { key: "spec", label: "규격" },
+                      { key: "quantity", label: "수량" },
+                      { key: "price", label: "구입금액(원)" },
+                      { key: "vendor", label: "구입처" },
+                      { key: "purpose", label: "용도" },
+                      { key: "location", label: "설치장소" },
+                      { key: "managerPrimary", label: "관리자_정" },
+                      { key: "managerSub", label: "관리자_부" },
+                    ] as { key: SortKey; label: string }[]).map((col) => {
+                      const active = sortKey === col.key;
+                      return (
+                        <th
+                          key={col.label}
+                          onClick={() => toggleSort(col.key)}
+                          className="cursor-pointer select-none px-4 py-3 text-left text-xs font-semibold text-gray-500 hover:text-gray-700"
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            {col.label}
+                            {active ? (
+                              sortDir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+                            ) : (
+                              <ArrowUpDown size={12} className="text-gray-300" />
+                            )}
+                          </span>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {visible.map((a) => (
+                  {sorted.map((a) => (
                     <tr
                       key={a.id}
                       onClick={() => setSelected(a)}
