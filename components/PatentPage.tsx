@@ -1,11 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import {
+  Plus,
+  ArrowLeft,
+  Pencil,
+  Trash2,
+  Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import type { Patent } from "@/lib/types";
 import { api } from "@/lib/api";
 import { useLookups, type LookupItem } from "@/lib/useLookups";
 import { badgeClass, currentStatus } from "@/lib/lookups";
+import { exportToExcel } from "@/lib/excel";
 import PatentFormModal from "@/components/PatentFormModal";
 import AttachmentManager, {
   uploadPending,
@@ -78,6 +88,78 @@ export default function PatentPage() {
     filter === "all"
       ? patents
       : patents.filter((p) => p.ipKindCode === filter);
+
+  // ── 정렬 ──
+  type SortKey = "country" | "kind" | "name" | "number" | "status" | "manager";
+  const [sortKey, setSortKey] = useState<SortKey | null>(null); // null = 표준(기본) 정렬
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const orderOf = (arr: LookupItem[], code?: string | null) => {
+    if (!code) return Number.MAX_SAFE_INTEGER;
+    const found = arr.find((x) => x.code === code);
+    return found ? found.sortOrder : Number.MAX_SAFE_INTEGER;
+  };
+
+  // 표준 정렬: 유형 → 국가 → 진행단계(현재상태), 전부 룩업 sort_order 기준
+  const standardCompare = (a: Patent, b: Patent) => {
+    const byKind = orderOf(kinds, a.ipKindCode) - orderOf(kinds, b.ipKindCode);
+    if (byKind) return byKind;
+    const byCountry = orderOf(countries, a.countryCode) - orderOf(countries, b.countryCode);
+    if (byCountry) return byCountry;
+    const byStatus =
+      orderOf(ipEvents, currentStatus(a.events)) - orderOf(ipEvents, currentStatus(b.events));
+    if (byStatus) return byStatus;
+    return a.id - b.id;
+  };
+
+  const sorted = [...visible].sort((a, b) => {
+    if (!sortKey) return standardCompare(a, b);
+    let d = 0;
+    switch (sortKey) {
+      case "country": d = orderOf(countries, a.countryCode) - orderOf(countries, b.countryCode); break;
+      case "kind": d = orderOf(kinds, a.ipKindCode) - orderOf(kinds, b.ipKindCode); break;
+      case "name": d = (a.name ?? "").localeCompare(b.name ?? "", "ko"); break;
+      case "number": d = (a.number ?? "").localeCompare(b.number ?? "", "ko", { numeric: true }); break;
+      case "status":
+        d = orderOf(ipEvents, currentStatus(a.events)) - orderOf(ipEvents, currentStatus(b.events)); break;
+      case "manager": d = (a.manager ?? "").localeCompare(b.manager ?? "", "ko"); break;
+    }
+    if (d === 0) d = a.id - b.id;
+    return sortDir === "asc" ? d : -d;
+  });
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((p) => (p === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  };
+
+  const handleExcel = () => {
+    exportToExcel({
+      fileName: `지식재산권_${new Date().toISOString().slice(0, 10)}.xlsx`,
+      sheetName: "지식재산권",
+      columns: [
+        { header: "순번", key: "no", width: 8 },
+        { header: "국가", key: "country", width: 12 },
+        { header: "유형", key: "kind", width: 12 },
+        { header: "지식재산권명", key: "name", width: 40 },
+        { header: "등록(출원)번호", key: "number", width: 22 },
+        { header: "현재상태", key: "status", width: 14 },
+        { header: "권리권자", key: "manager", width: 16 },
+      ],
+      rows: sorted.map((p, i) => {
+        const c = currentStatus(p.events);
+        return {
+          no: i + 1,
+          country: countryLabel(p.countryCode),
+          kind: kindLabel(p.ipKindCode),
+          name: p.name,
+          number: p.number || "-",
+          status: c ? eventLabel(c) : "-",
+          manager: p.manager || "-",
+        };
+      }),
+    });
+  };
 
   const countByStatus = (code: string) =>
     patents.filter((p) => currentStatus(p.events) === code).length;
@@ -246,13 +328,22 @@ export default function PatentPage() {
             회사 지식재산권 등록·출원·인증 현황을 관리합니다
           </p>
         </div>
-        <button
-          onClick={openRegister}
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600"
-        >
-          <Plus size={16} />
-          지식재산권 등록
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExcel}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+          >
+            <Download size={16} />
+            엑셀 다운로드
+          </button>
+          <button
+            onClick={openRegister}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-blue-600"
+          >
+            <Plus size={16} />
+            지식재산권 등록
+          </button>
+        </div>
       </div>
 
       {modalOpen && (
@@ -327,26 +418,41 @@ export default function PatentPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
-                    {[
-                      "순번",
-                      "국가",
-                      "유형",
-                      "지식재산권명",
-                      "등록(출원)번호",
-                      "현재상태",
-                      "권리권자",
-                    ].map((h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs font-semibold text-gray-500"
-                      >
-                        {h}
-                      </th>
-                    ))}
+                    {([
+                      { key: null, label: "순번" },        // 클릭 시 표준(기본) 순서로 리셋
+                      { key: "country", label: "국가" },
+                      { key: "kind", label: "유형" },
+                      { key: "name", label: "지식재산권명" },
+                      { key: "number", label: "등록(출원)번호" },
+                      { key: "status", label: "현재상태" },
+                      { key: "manager", label: "권리권자" },
+                    ] as { key: SortKey | null; label: string }[]).map((col) => {
+                      const active = col.key !== null && sortKey === col.key;
+                      return (
+                        <th
+                          key={col.label}
+                          onClick={() =>
+                            col.key === null
+                              ? (setSortKey(null), setSortDir("asc"))
+                              : toggleSort(col.key)
+                          }
+                          className="cursor-pointer select-none px-4 py-3 text-left text-xs font-semibold text-gray-500 hover:text-gray-700"
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            {col.label}
+                            {active ? (
+                              sortDir === "asc" ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+                            ) : (
+                              <ArrowUpDown size={12} className="text-gray-300" />
+                            )}
+                          </span>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {visible.map((p, i) => (
+                  {sorted.map((p, i) => (
                     <tr
                       key={p.id}
                       onClick={() => setSelected(p)}
