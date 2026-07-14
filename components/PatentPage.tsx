@@ -140,9 +140,9 @@ export default function PatentPage() {
         { header: "순번", key: "no", width: 8 },
         { header: "국가", key: "country", width: 12 },
         { header: "유형", key: "kind", width: 12 },
+        { header: "현재상태", key: "status", width: 14 },
         { header: "지식재산권명", key: "name", width: 40 },
         { header: "등록(출원)번호", key: "number", width: 22 },
-        { header: "현재상태", key: "status", width: 14 },
         { header: "권리권자", key: "manager", width: 16 },
       ],
       rows: sorted.map((p, i) => {
@@ -419,9 +419,9 @@ export default function PatentPage() {
                       { key: null, label: "순번" },        // 클릭 시 표준(기본) 순서로 리셋
                       { key: "country", label: "국가" },
                       { key: "kind", label: "유형" },
+                      { key: "status", label: "현재상태" },
                       { key: "name", label: "지식재산권명" },
                       { key: "number", label: "등록(출원)번호" },
-                      { key: "status", label: "현재상태" },
                       { key: "manager", label: "권리권자" },
                     ] as { key: SortKey | null; label: string }[]).map((col) => {
                       const active = col.key !== null && sortKey === col.key;
@@ -464,14 +464,14 @@ export default function PatentPage() {
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {kindLabel(p.ipKindCode)}
                       </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        <StatusBadge events={p.events} />
+                      </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
                         {p.name}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {p.number || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        <StatusBadge events={p.events} />
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {p.manager || "-"}
