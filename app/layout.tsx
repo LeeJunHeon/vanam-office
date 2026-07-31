@@ -5,6 +5,13 @@ import Providers from "@/components/Providers";
 export const metadata: Metadata = {
   title: "경영지원",
   description: "VANAM 경영지원 시스템",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
