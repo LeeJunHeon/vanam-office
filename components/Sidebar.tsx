@@ -13,8 +13,7 @@ import {
   Settings,
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
-
-type Page = "dashboard" | "patent" | "asset" | "hr" | "settings";
+import { visibleMenus, type MenuIcon, type Page } from "@/lib/menus";
 
 interface SidebarProps {
   currentPage: Page;
@@ -24,13 +23,13 @@ interface SidebarProps {
   canViewHr?: boolean;
 }
 
-const navItems: { key: Page; label: string; icon: typeof Award }[] = [
-  { key: "dashboard", label: "대시보드", icon: Home },
-  { key: "patent", label: "지식재산권", icon: Award },
-  { key: "asset", label: "장비관리대장", icon: Package },
-  { key: "hr", label: "인사정보카드", icon: IdCard },
-  { key: "settings", label: "설정", icon: Settings },
-];
+const menuIcons: Record<MenuIcon, typeof Award> = {
+  Home,
+  Award,
+  Package,
+  IdCard,
+  Settings,
+};
 
 export default function Sidebar({
   currentPage,
@@ -107,10 +106,8 @@ export default function Sidebar({
 
         {/* 네비게이션 */}
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">
-          {navItems
-            .filter((item) => item.key !== "hr" || canViewHr)
-            .map((item) => {
-            const Icon = item.icon;
+          {visibleMenus({ canViewHr }).map((item) => {
+            const Icon = menuIcons[item.icon];
             const active = currentPage === item.key;
             return (
               <button
