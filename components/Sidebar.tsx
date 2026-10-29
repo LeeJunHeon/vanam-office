@@ -87,8 +87,9 @@ export default function Sidebar({
         <div className="border-b border-gray-100 px-5 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500">
-                <Briefcase size={16} className="text-white" />
+              {/* 포털 lib/portal-apps.ts 와 같은 값(아이콘·iconBgColor·iconColor, 32px 상자·아이콘 16px·strokeWidth 1.8) — 바꿀 때 같이 바꿀 것 */}
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#eef2ff]">
+                <Briefcase size={16} color="#6366f1" strokeWidth={1.8} />
               </div>
               <div>
                 <h1 className="text-sm font-bold text-gray-900">경영지원</h1>
